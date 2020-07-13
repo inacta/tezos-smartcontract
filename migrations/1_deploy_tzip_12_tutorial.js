@@ -5,9 +5,9 @@ const saveContractAddress = require('./../helpers/saveContractAddress');
 
 // Set initial storage which is a parameter to the deployment
 // operation
-const token_balance = 10;
+const initial_account = {balance: 10, allowances: MichelsonMap.fromLiteral([])};
 const initial_storage = MichelsonMap.fromLiteral({
-    [`${alice.pkh}`]: token_balance
+    [`${alice.pkh}`]: initial_account
 });
 
 module.exports = async (deployer, network, accounts) => {

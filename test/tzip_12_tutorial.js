@@ -21,18 +21,18 @@ contract('tzip_12_tutorial', accounts => {
         storage = await tzip_12_tutorial_instance.storage();
     });
 
-    const expectedBalanceAlice = initial_storage.get(alice.pkh);
+    const expectedBalanceAlice = initial_storage.get(alice.pkh).balance;
     it(`should store a balance of ${expectedBalanceAlice} for Alice`, async () => {
         /**
          * Get balance for Alice from the smart contract's storage (by a big map key)
          */
-        const deployedBalanceAlice = await storage.get(alice.pkh);
+        const deployedBalanceAlice = (await storage.get(alice.pkh)).balance;
         assert.equal(expectedBalanceAlice, deployedBalanceAlice);
     });
 
     it(`should not store any balance for Bob`, async () => {
-        let balanceBob = await storage.get(bob.pkh);
-        assert.equal(balanceBob, undefined);
+        let accountBob = await storage.get(bob.pkh);
+        assert.equal(accountBob, undefined);
     });
 
     it('should transfer 1 token from Alice to Bob', async () => {
@@ -53,11 +53,15 @@ contract('tzip_12_tutorial', accounts => {
          */
         await tzip_12_tutorial_instance.transfer(transferParam);
         /**
-         * Bob's token balance should now be 1
+         * Bob's token balance should now be 1 and Alice's 9.
          */
-        const deployedBalanceBob = await storage.get(bob.pkh);
+        const deployedAccountBob = await storage.get(bob.pkh);
         const expectedBalanceBob = 1;
-        assert.equal(deployedBalanceBob, expectedBalanceBob);
+        assert.equal(deployedAccountBob.balance, expectedBalanceBob);
+
+        const deployedAccountAlice = await storage.get(alice.pkh);
+        const expectedBalanceAlice = 9;
+        assert.equal(deployedAccountAlice.balance, expectedBalanceAlice);
     });
 
     it(`should not allow transfers from_ an address that did not sign the transaction`, async () => {

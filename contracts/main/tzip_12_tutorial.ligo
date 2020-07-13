@@ -3,11 +3,14 @@
 type token_owner is address;
 type token_lookup_id is token_owner; // If changing contract to handle multiple assets,
 type token_balance is nat;
-type token_balances is big_map(token_owner, token_balance);
+type account is record
+    balance : token_balance;
+    allowances: map(address, bool);
+end
+type ledger is big_map(token_owner, account);
 type storage is record
-    ledger: token_balances;
+    ledger: ledger;
 end;
-//type storage is token_balances;
 
 type token_id is nat;
 
@@ -96,22 +99,45 @@ type action is
 | Transfer of transfer_param
 | Balance_of of balance_of_parameter_michelson
 
+function account_balance_with_default_nat(const account_option: option(account); const default: nat) : nat
+    is case account_option of
+        | Some(value) -> value.balance
+        | None -> default
+    end
+
 function get_with_default_nat(const option : option(nat); const default : nat) : nat
     is case option of
         | Some(value) -> value
         | None -> default
     end
 
+// Return true iff Tezos.source (transcation originator) has been granted access to spend from spender
+function is_allowed ( const spender : address ; const value : nat ; var s : storage) : bool is
+  begin
+    var allowed: bool := False;
+    if Tezos.sender =/= Tezos.source then block {
+      const src: account = case s.ledger[spender] of
+        Some (acc) -> acc
+        | None -> (failwith("NoAccount"): account)
+      end;
+      case src.allowances[Tezos.sender] of
+        Some (allowance) -> allowed := True
+        | None -> allowed := False
+      end;
+    };
+    else allowed := True;
+  end with allowed
+
 // Handle Balance_of requests
 const default_token_balance: token_balance = 0n;
 function get_token_balance (var token_id: token_id; var token_owner: token_owner; var storage: storage) : token_balance
  is begin
     if token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
-    const ledger: token_balances = storage.ledger;
+    const ledger: ledger = storage.ledger;
     const token_lookup_id: token_lookup_id = token_owner; // If token should handle multiple assets, change to tuple (token_id, token_owner)
-    const token_balance: option(token_balance) = Map.find_opt(token_lookup_id, ledger);
-    const ret: token_balance = get_with_default_nat(token_balance, default_token_balance);
- end with ret
+    const account: option(account) = Map.find_opt(token_lookup_id, ledger);
+    const token_balance: token_balance = account_balance_with_default_nat(account, default_token_balance);
+ end with token_balance
 
 type balance_of_requests_iterator_accumulator is (list(balance_of_response_michelson) * storage);
 function balance_of_requests_iterator (var acc: balance_of_requests_iterator_accumulator; var balance_of_request_michelson: balance_of_request_michelson) : balance_of_requests_iterator_accumulator
@@ -136,17 +162,41 @@ function balance_of (const balance_of_parameter_michelson : balance_of_parameter
     const callback_operation: operation = Tezos.transaction(balance_of_responses.0, 0tez, balance_of_parameter.callback);
   } with (list [callback_operation], storage)
 
+// TODO: This is very ineffective in terms of gas, big optimizations should be possible
 function transfer (const transfer_param : transfer_param; var storage : storage) : (list(operation) * storage)
  is begin
     function transfer_iterator (const storage : storage; const transfer : transfer) : storage
         is begin
-            (* You're only allowed to transfer your own tokens *)
-            if sender =/= transfer.from_ then failwith("Address from_ needs to be equal to the sender") else skip;
-            (* Allow transfer only if the sender has a sufficient balance *)
-            if get_with_default_nat(storage.ledger[transfer.from_], default_token_balance) < transfer.amount then failwith("Insufficient balance") else skip;
+            (* Verify that transaction originator is allowed to spend from this address *)
+            const allowed = is_allowed(transfer.from_, transfer.amount, storage);
+            if allowed then skip;
+            else failwith ("Sender not allowed to spend token from source");
+
+            if transfer.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
+
+            const sender_balance: nat = get_token_balance(transfer.token_id, transfer.from_, storage);
+            if sender_balance < transfer.amount then failwith("Insufficient balance") else skip;
             (* Update the ledger accordingly *)
-            storage.ledger[transfer.from_] := abs(get_with_default_nat(storage.ledger[transfer.from_], default_token_balance) - transfer.amount);
-            storage.ledger[transfer.to_] := get_with_default_nat(storage.ledger[transfer.to_], default_token_balance) + transfer.amount;
+            var sender_account: account := record
+                balance = 0n;
+                allowances = (map []: map(address, bool));
+            end;
+            case storage.ledger[transfer.from_] of
+                Some (account) -> sender_account := account
+                | None -> failwith("No sender balance")
+            end;
+            sender_account.balance := abs(sender_account.balance - transfer.amount);
+            storage.ledger[transfer.from_] := sender_account;
+            var recipientAccount: account := record
+                balance = 0n;
+                allowances = (map []: map(address, bool));
+            end;
+            case storage.ledger[transfer.to_] of
+                Some (acc) -> recipientAccount := acc
+                | None -> skip
+            end;
+            recipientAccount.balance := recipientAccount.balance + transfer.amount;
+            storage.ledger[transfer.to_] := recipientAccount;
         end with storage;
 
     storage := list_fold(transfer_iterator, transfer_param, storage);
