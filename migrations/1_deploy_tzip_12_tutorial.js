@@ -5,7 +5,7 @@ const saveContractAddress = require('./../helpers/saveContractAddress');
 
 // Set initial storage which is a parameter to the deployment
 // operation
-const initial_account = {balance: 10, allowances: MichelsonMap.fromLiteral([])};
+const initial_account = {balance: 10, allowances: []};
 const initial_storage = MichelsonMap.fromLiteral({
     [`${alice.pkh}`]: initial_account
 });

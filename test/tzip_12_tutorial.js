@@ -21,6 +21,24 @@ contract('tzip_12_tutorial', accounts => {
         storage = await tzip_12_tutorial_instance.storage();
     });
 
+    it('should be able to add an operator', async () => {
+        const tokenOwner = alice.pkh;
+        const accountBefore = await storage.get(tokenOwner);
+        assert.equal(0, accountBefore.allowances.length);
+        assert.equal(true, Array.isArray(accountBefore.allowances)); // I couldn't find an `assert.true`
+
+        const tokenOperator = bob.pkh;
+        await tzip_12_tutorial_instance.update_operators([{
+            'add_operator': {
+                owner: tokenOwner,
+                operator: tokenOperator
+            }
+        }]);
+        const accountAfter = await storage.get(tokenOwner);
+        assert.equal(1, accountAfter.allowances.length);
+        assert.equal(true, Array.isArray(accountAfter.allowances)); // I couldn't find an `assert.true`
+    });
+
     const expectedBalanceAlice = initial_storage.get(alice.pkh).balance;
     it(`should store a balance of ${expectedBalanceAlice} for Alice`, async () => {
         /**
