@@ -9,8 +9,17 @@ type account is record
     allowances: set (address);
 end
 type ledger is big_map(token_owner, account);
+type token_id is nat;
+type token_metadata is record
+    token_id: token_id;
+    symbol: string;
+    name: string;
+    decimals: nat;
+    extras: map(string, string);
+end
 type storage is record
     ledger: ledger;
+    token_metadata: big_map(token_id, token_metadata);
 end;
 
 type token_id is nat;
@@ -144,10 +153,17 @@ type update_operators_parameter is list(update_operators_add_or_remove_michelson
 
 // type updateOperatorsParameter = list(updateOperatorsAddOrRemoveMichelson);
 
+// Token_metadata_registry types
+type token_metadata_registry_target is address;
+type token_metadata_registry_parameter is contract(token_metadata_registry_target);
+// type tokenMetadataRegistryTarget = address;
+// type tokenMetadataRegistryParameter = contract(tokenMetadataRegistryTarget);
+
 type action is
 | Transfer of transfer_param
 | Balance_of of balance_of_parameter_michelson
 | Update_operators of update_operators_parameter
+| Token_metadata_registry of token_metadata_registry_parameter
 
 // operatorUpdatePolicy = Owner_update
 function can_update_operators (var token_owner: token_owner; var storage : storage) : unit is
@@ -298,6 +314,11 @@ function transfer (const transfer_param : transfer_param; var storage : storage)
     storage := list_fold(transfer_iterator, transfer_param, storage);
  end with ((nil : list(operation)), storage)
 
+function token_metadata_registry(const token_metadata_registry_parameter: token_metadata_registry_parameter; const  storage: storage): (list(operation) * storage) is
+ begin
+    const callback_operation: operation = Tezos.transaction(Tezos.self_address, 0tez, token_metadata_registry_parameter);
+ end with (list [callback_operation], storage)
+
 (* Default function that represents our contract, it's sole purpose here is the entrypoint routing *)
 function main (const action : action; var storage : storage) : (list(operation) * storage)
     is (case action of
@@ -308,6 +329,7 @@ function main (const action : action; var storage : storage) : (list(operation) 
     | Transfer(transfer_param) -> transfer(transfer_param, storage)
     | Balance_of(balance_of_parameter_michelson) -> balance_of(balance_of_parameter_michelson, storage)
     | Update_operators(update_operators_parameter) -> update_operators(update_operators_parameter, storage)
+    | Token_metadata_registry(token_metadata_registry_parameter) -> token_metadata_registry(token_metadata_registry_parameter, storage)
 
     (* This is just a placeholder *)
     // | U -> ((nil : list(operation)), storage)

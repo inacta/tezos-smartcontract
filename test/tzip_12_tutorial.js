@@ -21,11 +21,22 @@ contract('tzip_12_tutorial', accounts => {
         storage = await tzip_12_tutorial_instance.storage();
     });
 
+    describe('get token information', () => {
+        it('should be able to read token information from storage as specified in FA2/TZIP-12', async () => {
+            // I think the type of the key of all big_maps has to be string
+            const asset_info = await storage.token_metadata.get(`0`);
+            assert.equal(0, asset_info.token_id);
+            assert.equal("CVL0", asset_info.symbol);
+            assert.equal("Crypto Valley Labs, iteration 0", asset_info.name);
+            assert.equal(6, asset_info.decimals);
+        })
+    })
+
     describe('update operators', () => {
         describe('add operator', () => {
             it('should be able to add an operator and send when added', async () => {
                 const tokenOwner = alice.pkh;
-                const accountBefore = await storage.get(tokenOwner);
+                const accountBefore = await storage.ledger.get(tokenOwner);
                 assert.equal(true, Array.isArray(accountBefore.allowances)); // I couldn't find an `assert.true`
 
                 const tokenOperator = bob.pkh;
@@ -35,7 +46,7 @@ contract('tzip_12_tutorial', accounts => {
                         operator: tokenOperator
                     }
                 }]);
-                const accountAfter = await storage.get(tokenOwner);
+                const accountAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(1, accountAfter.allowances.length);
                 assert.equal(true, Array.isArray(accountAfter.allowances)); // I couldn't find an `assert.true`
 
@@ -57,7 +68,7 @@ contract('tzip_12_tutorial', accounts => {
                 const prom = tzip_12_tutorial_instance.update_operators(updateParam);
                 await tzip_12_tutorial_instance.update_operators(updateParam);
                 prom.then(() => {
-                    storage.get(tokenOwner).then(accountAfter => {
+                    storage.ledger.get(tokenOwner).then(accountAfter => {
                         assert.equal(1, accountAfter.allowances.length);
                         assert.equal(tokenOperator, accountAfter.allowances[0]);
                     });
@@ -65,7 +76,7 @@ contract('tzip_12_tutorial', accounts => {
 
                 // Call it again and ensure that nothing has changed
                 await tzip_12_tutorial_instance.update_operators(updateParam);
-                storage.get(tokenOwner).then(accountAfter => {
+                storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(1, accountAfter.allowances.length);
                     assert.equal(tokenOperator, accountAfter.allowances[0]);
                 });
@@ -91,7 +102,7 @@ contract('tzip_12_tutorial', accounts => {
                 ];
                 await tzip_12_tutorial_instance.update_operators(addParam);
 
-                storage.get(tokenOwner).then(accountAfter => {
+                storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(2, accountAfter.allowances.length);
                     assert.equal(true, accountAfter.allowances.includes(tokenOperator0));
                     assert.equal(true, accountAfter.allowances.includes(tokenOperator1));
@@ -112,7 +123,7 @@ contract('tzip_12_tutorial', accounts => {
                     }
                 ];
                 await tzip_12_tutorial_instance.update_operators(removeParam);
-                storage.get(tokenOwner).then(accountAfter => {
+                storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(0, accountAfter.allowances.length);
                 });
             });
@@ -129,7 +140,7 @@ contract('tzip_12_tutorial', accounts => {
                         operator: tokenOperator
                     }
                 }]);
-                const accountMid = await storage.get(tokenOwner);
+                const accountMid = await storage.ledger.get(tokenOwner);
                 assert.equal(1, accountMid.allowances.length);
                 assert.equal(true, Array.isArray(accountMid.allowances));
                 assert.equal(tokenOperator, accountMid.allowances[0]);
@@ -141,29 +152,29 @@ contract('tzip_12_tutorial', accounts => {
                     }
                 }];
                 await tzip_12_tutorial_instance.update_operators(removeParam);
-                const accountAfter = await storage.get(tokenOwner);
+                const accountAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(0, accountAfter.allowances.length);
 
                 // Removing an operator should be an idempotent operation
                 await tzip_12_tutorial_instance.update_operators(removeParam);
-                const accountAfterAfter = await storage.get(tokenOwner);
+                const accountAfterAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(0, accountAfterAfter.allowances.length);
             });
         });
     });
 
     describe('update operators', () => {
-        const expectedBalanceAlice = initial_storage.get(alice.pkh).balance;
+        const expectedBalanceAlice = initial_storage.ledger.get(alice.pkh).balance;
         it(`should store a balance of ${expectedBalanceAlice} for Alice`, async () => {
             /**
              * Get balance for Alice from the smart contract's storage (by a big map key)
              */
-            const deployedBalanceAlice = (await storage.get(alice.pkh)).balance;
+            const deployedBalanceAlice = (await storage.ledger.get(alice.pkh)).balance;
             assert.equal(expectedBalanceAlice, deployedBalanceAlice);
         });
 
         it(`should not store any balance for Bob`, async () => {
-            let accountBob = await storage.get(bob.pkh);
+            let accountBob = await storage.ledger.get(bob.pkh);
             assert.equal(accountBob, undefined);
         });
 
@@ -187,11 +198,11 @@ contract('tzip_12_tutorial', accounts => {
             /**
              * Bob's token balance should now be 1 and Alice's 9.
              */
-            const deployedAccountBob = await storage.get(bob.pkh);
+            const deployedAccountBob = await storage.ledger.get(bob.pkh);
             const expectedBalanceBob = 1;
             assert.equal(deployedAccountBob.balance, expectedBalanceBob);
 
-            const deployedAccountAlice = await storage.get(alice.pkh);
+            const deployedAccountAlice = await storage.ledger.get(alice.pkh);
             const expectedBalanceAlice = 9;
             assert.equal(deployedAccountAlice.balance, expectedBalanceAlice);
         });

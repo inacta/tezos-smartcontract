@@ -6,9 +6,24 @@ const saveContractAddress = require('./../helpers/saveContractAddress');
 // Set initial storage which is a parameter to the deployment
 // operation
 const initial_account = {balance: 10, allowances: []};
-const initial_storage = MichelsonMap.fromLiteral({
+const initial_ledger = MichelsonMap.fromLiteral({
     [`${alice.pkh}`]: initial_account
 });
+const asset_description = {
+    token_id: 0,
+    symbol: "CVL0",
+    name: "Crypto Valley Labs, iteration 0",
+    decimals: 6,
+    extras: MichelsonMap.fromLiteral({})
+};
+// I think the type of the key of all big_maps has to be string
+const token_metadata = MichelsonMap.fromLiteral({
+    [`0`]: asset_description
+ });
+const initial_storage = {
+    ledger: initial_ledger,
+    token_metadata: token_metadata
+};
 
 module.exports = async (deployer, network, accounts) => {
 
