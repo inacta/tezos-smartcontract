@@ -3,9 +3,10 @@
 type token_owner is address;
 type token_lookup_id is token_owner; // If changing contract to handle multiple assets,
 type token_balance is nat;
+
 type account is record
     balance : token_balance;
-    allowances: map(address, bool);
+    allowances: set (address);
 end
 type ledger is big_map(token_owner, account);
 type storage is record
@@ -95,18 +96,112 @@ type balance_of_parameter_michelson is michelson_pair_right_comb(balance_of_para
 
 // type balanceOfParameterMichelson = michelson_pair_right_comb(balanceOfParameterAuxiliary);
 
+
+// Update_operators types
+type token_operator is address;
+// type tokenOperator = address;
+
+type operator_parameter is record [
+    owner: token_owner;
+    operator: token_operator;
+]
+
+// type operatorParameter = {
+//     owner: tokenOwner,
+//     operator: tokenOperator,
+// }
+
+type update_operators_add_or_remove is
+// // There's an extra `_p` in the constructors below to avoid 'redundant constructor' error
+// // due to the interop type conversions below
+// Type constructors have to start with capital letters
+| Add_operator_p of operator_parameter
+| Remove_operator_p of operator_parameter
+
+// type updateOperatorsAddOrRemove =
+// // There's an extra `_p` in the constructors below to avoid 'redundant constructor' error
+// // due to the interop type conversions below
+// | Add_operator_p(operatorParameter)
+// | Remove_operator_p(operatorParameter)
+
+type operator_parameter_michelson is michelson_pair_right_comb(operator_parameter);
+
+// type operatorParameterMichelson = michelson_pair_right_comb(operatorParameter);
+
+type update_operators_add_or_remove_auxiliary is
+| Add_operator of operator_parameter_michelson
+| Remove_operator of operator_parameter_michelson
+
+// type updateOperatorsAddOrRemoveAuxiliary =
+// | Add_operator(operatorParameterMichelson)
+// | Remove_operator(operatorParameterMichelson)
+
+type update_operators_add_or_remove_michelson is michelson_or_right_comb(update_operators_add_or_remove_auxiliary);
+
+// type updateOperatorsAddOrRemoveMichelson = michelson_or_right_comb(updateOperatorsAddOrRemoveAuxiliary);
+
+type update_operators_parameter is list(update_operators_add_or_remove_michelson);
+
+// type updateOperatorsParameter = list(updateOperatorsAddOrRemoveMichelson);
+
 type action is
 | Transfer of transfer_param
 | Balance_of of balance_of_parameter_michelson
+| Update_operators of update_operators_parameter
 
-function account_balance_with_default_nat(const account_option: option(account); const default: nat) : nat
-    is case account_option of
+// operatorUpdatePolicy = Owner_update
+function can_update_operators (var token_owner: token_owner; var storage : storage) : unit is
+    begin
+        if Tezos.sender =/= token_owner then failwith("Only owner can update operators") else skip;
+    end with Unit
+
+function update_operators (var storage: storage; var operator_parameter_michelson: operator_parameter_michelson; const add: bool): storage is
+    begin
+        var operator_parameter: operator_parameter := Layout.convert_from_right_comb(operator_parameter_michelson);
+        const unit_value: unit = can_update_operators((operator_parameter.owner, storage));
+        var account: account := record
+                balance = 0n;
+                allowances = (set []: set(address));
+        end;
+        case storage.ledger[operator_parameter.owner] of
+            | Some(acc) -> account := acc
+            | None -> skip
+        end;
+        var allowances: set(address) := account.allowances;
+        if add then block {
+            allowances := Set.add(operator_parameter.operator, allowances);
+        };
+        else block {
+            allowances := Set.remove(operator_parameter.operator, allowances);
+        };
+        account.allowances := allowances;
+        storage.ledger[operator_parameter.owner] := account;
+
+    end with storage
+
+function update_operators_iterator (var storage: storage; var update_operators_add_or_remove_michelson: update_operators_add_or_remove_michelson): storage is
+    begin
+        const update_operators_add_or_remove_auxiliary: update_operators_add_or_remove_auxiliary = Layout.convert_from_right_comb(update_operators_add_or_remove_michelson);
+        const ret: storage = case update_operators_add_or_remove_auxiliary of
+            | Add_operator(operator_parameter_michelson) -> update_operators(storage, operator_parameter_michelson, True )
+            | Remove_operator(operator_parameter_michelson) -> update_operators(storage, operator_parameter_michelson, False )
+        end
+    end with ret
+
+function update_operators (const update_operators_parameter: update_operators_parameter; var storage: storage) : (list(operation) * storage) is
+begin
+    storage := List.fold(update_operators_iterator, update_operators_parameter, storage);
+end with ((nil: list(operation)), storage)
+
+// Balance and transfer functionality
+function account_balance_with_default_nat(const account_option: option(account); const default: nat) : nat is
+    case account_option of
         | Some(value) -> value.balance
         | None -> default
     end
 
-function get_with_default_nat(const option : option(nat); const default : nat) : nat
-    is case option of
+function get_with_default_nat(const option : option(nat); const default : nat) : nat is
+    case option of
         | Some(value) -> value
         | None -> default
     end
@@ -120,9 +215,10 @@ function is_allowed ( const spender : address ; const value : nat ; var s : stor
         Some (acc) -> acc
         | None -> (failwith("NoAccount"): account)
       end;
-      case src.allowances[Tezos.sender] of
-        Some (allowance) -> allowed := True
-        | None -> allowed := False
+      // TODO: This is clumsy, fix?
+      case src.allowances contains Tezos.sender of
+        True -> allowed := True
+        | False -> allowed := False
       end;
     };
     else allowed := True;
@@ -179,7 +275,7 @@ function transfer (const transfer_param : transfer_param; var storage : storage)
             (* Update the ledger accordingly *)
             var sender_account: account := record
                 balance = 0n;
-                allowances = (map []: map(address, bool));
+                allowances = (set []: set(address));
             end;
             case storage.ledger[transfer.from_] of
                 Some (account) -> sender_account := account
@@ -189,7 +285,7 @@ function transfer (const transfer_param : transfer_param; var storage : storage)
             storage.ledger[transfer.from_] := sender_account;
             var recipientAccount: account := record
                 balance = 0n;
-                allowances = (map []: map(address, bool));
+                allowances = (set []: set(address));
             end;
             case storage.ledger[transfer.to_] of
                 Some (acc) -> recipientAccount := acc
@@ -211,6 +307,7 @@ function main (const action : action; var storage : storage) : (list(operation) 
      *)
     | Transfer(transfer_param) -> transfer(transfer_param, storage)
     | Balance_of(balance_of_parameter_michelson) -> balance_of(balance_of_parameter_michelson, storage)
+    | Update_operators(update_operators_parameter) -> update_operators(update_operators_parameter, storage)
 
     (* This is just a placeholder *)
     // | U -> ((nil : list(operation)), storage)
