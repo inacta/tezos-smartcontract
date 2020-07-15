@@ -8,5 +8,10 @@ module.exports = {
         pkh: "tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6",
         sk: "edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt",
         pk: "edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4"
+    },
+    charlie: {
+        pkh: "tz2PSZ7vMMe9XzfQa7VNmmwAWpNFEaiNyVE9",
+        sk: "spsk2xNpEX3Rn6RpP2CXeWSdQaGtmqimPYicRw8uuFAsdaczf5t5qY",
+        pk: "sppk7ZjUEsrUtaRoNXxa2f2myLVrcwSxcQw38GqoRWmDgLhJFGwGoi4"
     }
 };

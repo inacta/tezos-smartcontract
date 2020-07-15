@@ -9,6 +9,7 @@ module.exports = {
     contractErrors: {
         fromEqualToSenderAddress: "Address from_ needs to be equal to the sender",
         insufficientBalance: "Insufficient balance",
-        unknownTokenId: "FA2_TOKEN_UNDEFINED"
+        unknownTokenId: "FA2_TOKEN_UNDEFINED",
+        approveOnBehalfOfOthers: "Only owner can update operators"
     }
 };

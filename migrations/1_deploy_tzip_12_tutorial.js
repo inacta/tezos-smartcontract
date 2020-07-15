@@ -1,5 +1,5 @@
 const tzip_12 = artifacts.require('tzip_12_tutorial');
-const { alice } = require('./../scripts/sandbox/accounts');
+const { alice, bob } = require('./../scripts/sandbox/accounts');
 const { MichelsonMap } = require('@taquito/taquito');
 const saveContractAddress = require('./../helpers/saveContractAddress');
 
@@ -7,7 +7,8 @@ const saveContractAddress = require('./../helpers/saveContractAddress');
 // operation
 const initial_account = {balance: 10, allowances: []};
 const initial_ledger = MichelsonMap.fromLiteral({
-    [`${alice.pkh}`]: initial_account
+    [`${alice.pkh}`]: initial_account,
+    [`${bob.pkh}`]: initial_account
 });
 const asset_description = {
     token_id: 0,
