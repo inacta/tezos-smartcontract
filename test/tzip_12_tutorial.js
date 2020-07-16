@@ -225,11 +225,11 @@ contract('fa2_basic', accounts => {
             await fa2_basic_instance.transfer(transferParam);
             const accountBobAfter = await storage.ledger.get(bob.pkh);
             const accountAliceAfter = await storage.ledger.get(alice.pkh);
-            assert.equal(accountAliceAfter.balance, accountAliceBefore.balance.minus(new BigNumber(transferAmount)));
-            assert.equal(accountBobAfter.balance, accountBobBefore.balance.plus(new BigNumber(transferAmount)));
+            expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance.minus(transferAmount))).to.be.true;
+            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance.plus(transferAmount))).to.be.true;
         });
 
-        it(`should not allow transfers from_ an address that did not sign the transaction and that has not been made operator`, async () => {
+        it(`should not allow transfers from an address that did not sign the transaction and that has not been made operator`, async () => {
             const transferParam = [
                 {
                     token_id: 0,
@@ -257,8 +257,8 @@ contract('fa2_basic', accounts => {
                 assert.equal(e.message, constants.contractErrors.fromEqualToSenderAddress);
                 accountBobAfter = await storage.ledger.get(bob.pkh);
                 accountAliceAfter = await storage.ledger.get(alice.pkh);
-                assert.equal(accountBobBefore.balance, accountBobAfter.balance);
-                assert.equal(accountAliceAfter.balance, accountAliceBefore.balance);
+                expect(accountBobBefore.balance.isEqualTo(accountBobAfter.balance)).to.be.true;
+                expect(accountAliceBefore.balance.isEqualTo(accountAliceAfter.balance)).to.be.true;
                 ranToCompletion = true;
             }
             assert.equal(ranToCompletion, true);
@@ -284,6 +284,5 @@ contract('fa2_basic', accounts => {
             }
             assert.equal(ranToCompletion, true);
         });
-
     });
 });
