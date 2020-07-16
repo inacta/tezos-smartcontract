@@ -1,4 +1,5 @@
-const tzip_12_tutorial = artifacts.require('tzip_12_tutorial');
+const BigNumber = require('bignumber.js');
+const fa2_basic = artifacts.require('fa2_basic');
 
 const { initial_storage } = require('../migrations/1_deploy_tzip_12_tutorial.js');
 const constants = require('./../helpers/constants.js');
@@ -8,17 +9,17 @@ const constants = require('./../helpers/constants.js');
  */
 const { alice, bob, charlie } = require('./../scripts/sandbox/accounts');
 
-contract('tzip_12_tutorial', accounts => {
+contract('fa2_basic', accounts => {
     let storage;
-    let tzip_12_tutorial_instance;
+    let fa2_basic_instance;
 
     before(async () => {
-        tzip_12_tutorial_instance = await tzip_12_tutorial.deployed();
+        fa2_basic_instance = await fa2_basic.deployed();
         /**
          * Display the current contract address for debugging purposes
          */
         // console.log('Contract deployed at:', tzip_12_tutorial_instance.address);
-        storage = await tzip_12_tutorial_instance.storage();
+        storage = await fa2_basic_instance.storage();
     });
 
     describe('get token information', () => {
@@ -38,7 +39,7 @@ contract('tzip_12_tutorial', accounts => {
                 const tokenOwner = alice.pkh;
                 const tokenOperator = bob.pkh;
                 try {
-                    await tzip_12_tutorial_instance.update_operators([{
+                    await fa2_basic_instance.update_operators([{
                         'add_operator': {
                             owner: tokenOwner,
                             operator: tokenOperator
@@ -55,7 +56,7 @@ contract('tzip_12_tutorial', accounts => {
                 const accountBefore = await storage.ledger.get(tokenOwner);
                 assert.equal(true, Array.isArray(accountBefore.allowances)); // I couldn't find an `assert.true`
 
-                await tzip_12_tutorial_instance.update_operators([{
+                await fa2_basic_instance.update_operators([{
                     'add_operator': {
                         owner: tokenOwner,
                         operator: tokenOperator
@@ -80,8 +81,8 @@ contract('tzip_12_tutorial', accounts => {
                 }];
 
                 // Call update_operators twice and ensure that only one entry has been made
-                const prom = tzip_12_tutorial_instance.update_operators(updateParam);
-                await tzip_12_tutorial_instance.update_operators(updateParam);
+                const prom = fa2_basic_instance.update_operators(updateParam);
+                await fa2_basic_instance.update_operators(updateParam);
                 prom.then(() => {
                     storage.ledger.get(tokenOwner).then(accountAfter => {
                         assert.equal(1, accountAfter.allowances.length);
@@ -90,7 +91,7 @@ contract('tzip_12_tutorial', accounts => {
                 });
 
                 // Call it again and ensure that nothing has changed
-                await tzip_12_tutorial_instance.update_operators(updateParam);
+                await fa2_basic_instance.update_operators(updateParam);
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(1, accountAfter.allowances.length);
                     assert.equal(tokenOperator, accountAfter.allowances[0]);
@@ -115,7 +116,7 @@ contract('tzip_12_tutorial', accounts => {
                         }
                     }
                 ];
-                await tzip_12_tutorial_instance.update_operators(addParam);
+                await fa2_basic_instance.update_operators(addParam);
 
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(2, accountAfter.allowances.length);
@@ -137,13 +138,13 @@ contract('tzip_12_tutorial', accounts => {
                         }
                     }
                 ];
-                await tzip_12_tutorial_instance.update_operators(removeParam);
+                await fa2_basic_instance.update_operators(removeParam);
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(0, accountAfter.allowances.length);
                 });
 
                 // Removing the operators again should be the unit identity operator as remove should be idempotent
-                await tzip_12_tutorial_instance.update_operators(removeParam);
+                await fa2_basic_instance.update_operators(removeParam);
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(0, accountAfter.allowances.length);
                 });
@@ -155,7 +156,7 @@ contract('tzip_12_tutorial', accounts => {
                 const tokenOwner = alice.pkh;
 
                 const tokenOperator = bob.pkh;
-                await tzip_12_tutorial_instance.update_operators([{
+                await fa2_basic_instance.update_operators([{
                     'add_operator': {
                         owner: tokenOwner,
                         operator: tokenOperator
@@ -172,19 +173,19 @@ contract('tzip_12_tutorial', accounts => {
                         operator: tokenOperator
                     }
                 }];
-                await tzip_12_tutorial_instance.update_operators(removeParam);
+                await fa2_basic_instance.update_operators(removeParam);
                 const accountAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(0, accountAfter.allowances.length);
 
                 // Removing an operator should be an idempotent operation
-                await tzip_12_tutorial_instance.update_operators(removeParam);
+                await fa2_basic_instance.update_operators(removeParam);
                 const accountAfterAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(0, accountAfterAfter.allowances.length);
             });
         });
     });
 
-    describe('update operators', () => {
+    describe('transfer and balances', () => {
         const expectedBalanceAlice = initial_storage.ledger.get(alice.pkh).balance;
         const expectedBalanceBob = initial_storage.ledger.get(bob.pkh).balance;
         it(`should store a balance of ${expectedBalanceAlice} for Alice and ${expectedBalanceBob} for Bob`, async () => {
@@ -204,54 +205,63 @@ contract('tzip_12_tutorial', accounts => {
             assert.equal(accountCharlie, undefined);
         });
 
-        it('should transfer 1 token from Alice to Bob', async () => {
+        const transferAmount = 1;
+        it(`should transfer 1 token from Alice to Bob`, async () => {
+            const accountBobBefore = await storage.ledger.get(bob.pkh);
+            const accountAliceBefore = await storage.ledger.get(alice.pkh);
+
             const transferParam = [
                 {
                     /**
                      * token_id: 0 represents the single token_id within our contract
                      */
                     token_id: 0,
-                    amount: 1,
+                    amount: transferAmount,
                     from_: alice.pkh,
                     to_: bob.pkh
                 }
             ];
 
-            /**
-             * Call the `transfer` entrypoint
-             */
-            await tzip_12_tutorial_instance.transfer(transferParam);
-            /**
-             * Bob's token balance should now be 1 and Alice's 9.
-             */
-            const deployedAccountBob = await storage.ledger.get(bob.pkh);
-            const expectedBalanceBob = 11;
-            assert.equal(deployedAccountBob.balance, expectedBalanceBob);
-
-            const deployedAccountAlice = await storage.ledger.get(alice.pkh);
-            const expectedBalanceAlice = 9;
-            assert.equal(deployedAccountAlice.balance, expectedBalanceAlice);
+            await fa2_basic_instance.transfer(transferParam);
+            const accountBobAfter = await storage.ledger.get(bob.pkh);
+            const accountAliceAfter = await storage.ledger.get(alice.pkh);
+            assert.equal(accountAliceAfter.balance, accountAliceBefore.balance.minus(new BigNumber(transferAmount)));
+            assert.equal(accountBobAfter.balance, accountBobBefore.balance.plus(new BigNumber(transferAmount)));
         });
 
-        it(`should not allow transfers from_ an address that did not sign the transaction`, async () => {
+        it(`should not allow transfers from_ an address that did not sign the transaction and that has not been made operator`, async () => {
             const transferParam = [
                 {
                     token_id: 0,
-                    amount: 1,
+                    amount: 5,
                     from_: bob.pkh,
                     to_: alice.pkh
                 }
             ];
 
+            let accountBobBefore;
+            let accountAliceBefore;
+            let accountBobAfter;
+            let accountAliceAfter;
+            var ranToCompletion = false;
             try {
                 /**
                  * Transactions in the test suite are signed by a secret/private key
                  * configured in truffle-config.js
                  */
-                await tzip_12_tutorial_instance.transfer(transferParam);
+                accountBobBefore = await storage.ledger.get(bob.pkh);
+                accountAliceBefore = await storage.ledger.get(alice.pkh);
+                await fa2_basic_instance.transfer(transferParam);
+
             } catch (e) {
-                assert.equal(e.message, constants.contractErrors.fromEqualToSenderAddress)
+                assert.equal(e.message, constants.contractErrors.fromEqualToSenderAddress);
+                accountBobAfter = await storage.ledger.get(bob.pkh);
+                accountAliceAfter = await storage.ledger.get(alice.pkh);
+                assert.equal(accountBobBefore.balance, accountBobAfter.balance);
+                assert.equal(accountAliceAfter.balance, accountAliceBefore.balance);
+                ranToCompletion = true;
             }
+            assert.equal(ranToCompletion, true);
         });
 
         it(`should not transfer tokens from Alice to Bob when Alice's balance is insufficient`, async () => {
@@ -265,11 +275,14 @@ contract('tzip_12_tutorial', accounts => {
                 }
             ];
 
+            var ranToCompletion = false;
             try {
-                await tzip_12_tutorial_instance.transfer(transferParam);
+                await fa2_basic_instance.transfer(transferParam);
             } catch (e) {
-                assert.equal(e.message, constants.contractErrors.insufficientBalance)
+                assert.equal(e.message, constants.contractErrors.insufficientBalance);
+                ranToCompletion = true;
             }
+            assert.equal(ranToCompletion, true);
         });
 
     });

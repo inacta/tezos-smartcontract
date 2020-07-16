@@ -222,23 +222,24 @@ function get_with_default_nat(const option : option(nat); const default : nat) :
         | None -> default
     end
 
-// Return true iff Tezos.source (transcation originator) has been granted access to spend from spender
-function is_allowed ( const spender : address ; const value : nat ; var s : storage) : bool is
+// Fail if Tezos.source is not allowed to withdraw from spender
+function is_allowed ( const spender : address ; var s : storage) : unit is
   begin
-    var allowed: bool := False;
-    if Tezos.sender =/= Tezos.source then block {
+    // Tezos.sender is the address that initiated the current transaction,
+    // it can be a contract, or a regular address
+    if spender =/= Tezos.sender then block {
       const src: account = case s.ledger[spender] of
-        Some (acc) -> acc
+        | Some (acc) -> acc
         | None -> (failwith("NoAccount"): account)
       end;
       // TODO: This is clumsy, fix?
       case src.allowances contains Tezos.sender of
-        True -> allowed := True
-        | False -> allowed := False
+        | True -> skip
+        | False -> failwith("FA2_NOT_OPERATOR")
       end;
     };
-    else allowed := True;
-  end with allowed
+    else skip;
+  end with Unit
 
 // Handle Balance_of requests
 const default_token_balance: token_balance = 0n;
@@ -280,14 +281,12 @@ function transfer (const transfer_param : transfer_param; var storage : storage)
     function transfer_iterator (const storage : storage; const transfer : transfer) : storage
         is begin
             (* Verify that transaction originator is allowed to spend from this address *)
-            const allowed = is_allowed(transfer.from_, transfer.amount, storage);
-            if allowed then skip;
-            else failwith ("Sender not allowed to spend token from source");
+            const unit_value: unit = is_allowed(transfer.from_, storage);
 
             if transfer.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
 
             const sender_balance: nat = get_token_balance(transfer.token_id, transfer.from_, storage);
-            if sender_balance < transfer.amount then failwith("Insufficient balance") else skip;
+            if sender_balance < transfer.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
             (* Update the ledger accordingly *)
             var sender_account: account := record
                 balance = 0n;

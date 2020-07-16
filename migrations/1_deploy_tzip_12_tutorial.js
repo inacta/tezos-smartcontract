@@ -1,4 +1,4 @@
-const tzip_12 = artifacts.require('tzip_12_tutorial');
+const fa2_basic = artifacts.require('fa2_basic');
 const { alice, bob } = require('./../scripts/sandbox/accounts');
 const { MichelsonMap } = require('@taquito/taquito');
 const saveContractAddress = require('./../helpers/saveContractAddress');
@@ -29,7 +29,7 @@ const initial_storage = {
 module.exports = async (deployer, network, accounts) => {
 
     // TODO format to await instead of .then
-    deployer.deploy(tzip_12, initial_storage)
+    deployer.deploy(fa2_basic, initial_storage)
         .then(contract => saveContractAddress('tzip12', contract.address));
 
 };
