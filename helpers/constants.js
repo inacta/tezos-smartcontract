@@ -10,6 +10,9 @@ module.exports = {
         fromEqualToSenderAddress: "FA2_NOT_OPERATOR",
         insufficientBalance: "FA2_INSUFFICIENT_BALANCE",
         unknownTokenId: "FA2_TOKEN_UNDEFINED",
-        approveOnBehalfOfOthers: "Only owner can update operators"
+        approveOnBehalfOfOthers: "Only owner can update operators",
+        notNrWlAdmin: "FA2_NOT_NON_REVOCABLE_WHITELIST_ADMIN",
+        newNrWlAdminNotWlAdmin: "FA2_NEW_NON_REVOCABLE_WHITELIST_ADMIN_NOT_WHITELIST_ADMIN",
+        callerIsNonRevocableWlAdmin: "FA2_CALLER_IS_NON_REVOCABLE_WHITELIST_ADMIN"
     }
 };

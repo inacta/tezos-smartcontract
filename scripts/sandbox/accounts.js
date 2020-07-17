@@ -13,5 +13,10 @@ module.exports = {
         pkh: "tz2PSZ7vMMe9XzfQa7VNmmwAWpNFEaiNyVE9",
         sk: "spsk2xNpEX3Rn6RpP2CXeWSdQaGtmqimPYicRw8uuFAsdaczf5t5qY",
         pk: "sppk7ZjUEsrUtaRoNXxa2f2myLVrcwSxcQw38GqoRWmDgLhJFGwGoi4"
+    },
+    david: {
+        pkh: "tz2Ek6HgN8CATFx3Mc7rgeCkqCbupdk8oh59",
+        sk: "sppk7a4oWgKG5vzTnLuMQJEwos1SMuTEW53Cy3HSWXNsTtEr6atNAZf",
+        pk: "spsk3LxcM5gVypN9ngZ7djwDHwsoQfjym3t77cJqxUwcQjkw87Z5na"
     }
 };
