@@ -13,6 +13,7 @@ module.exports = {
         approveOnBehalfOfOthers: "Only owner can update operators",
         notNrWlAdmin: "FA2_NOT_NON_REVOCABLE_WHITELIST_ADMIN",
         newNrWlAdminNotWlAdmin: "FA2_NEW_NON_REVOCABLE_WHITELIST_ADMIN_NOT_WHITELIST_ADMIN",
-        callerIsNonRevocableWlAdmin: "FA2_CALLER_IS_NON_REVOCABLE_WHITELIST_ADMIN"
+        callerIsNonRevocableWlAdmin: "FA2_CALLER_IS_NON_REVOCABLE_WHITELIST_ADMIN",
+        onlyWlrCanAddWld: "FA2_ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS"
     }
 };

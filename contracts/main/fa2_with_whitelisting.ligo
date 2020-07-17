@@ -107,22 +107,13 @@ type balance_of_parameter_auxiliary is record [
 
 type balance_of_parameter_michelson is michelson_pair_right_comb(balance_of_parameter_auxiliary);
 
-// type balanceOfParameterMichelson = michelson_pair_right_comb(balanceOfParameterAuxiliary);
-
-
 // Update_operators types
 type token_operator is address;
-// type tokenOperator = address;
 
 type operator_parameter is record [
     owner: token_owner;
     operator: token_operator;
 ]
-
-// type operatorParameter = {
-//     owner: tokenOwner,
-//     operator: tokenOperator,
-// }
 
 type update_operators_add_or_remove is
 // // There's an extra `_p` in the constructors below to avoid 'redundant constructor' error
@@ -131,37 +122,35 @@ type update_operators_add_or_remove is
 | Add_operator_p of operator_parameter
 | Remove_operator_p of operator_parameter
 
-// type updateOperatorsAddOrRemove =
-// // There's an extra `_p` in the constructors below to avoid 'redundant constructor' error
-// // due to the interop type conversions below
-// | Add_operator_p(operatorParameter)
-// | Remove_operator_p(operatorParameter)
-
 type operator_parameter_michelson is michelson_pair_right_comb(operator_parameter);
-
-// type operatorParameterMichelson = michelson_pair_right_comb(operatorParameter);
 
 type update_operators_add_or_remove_auxiliary is
 | Add_operator of operator_parameter_michelson
 | Remove_operator of operator_parameter_michelson
 
-// type updateOperatorsAddOrRemoveAuxiliary =
-// | Add_operator(operatorParameterMichelson)
-// | Remove_operator(operatorParameterMichelson)
-
 type update_operators_add_or_remove_michelson is michelson_or_right_comb(update_operators_add_or_remove_auxiliary);
 
-// type updateOperatorsAddOrRemoveMichelson = michelson_or_right_comb(updateOperatorsAddOrRemoveAuxiliary);
-
 type update_operators_parameter is list(update_operators_add_or_remove_michelson);
-
-// type updateOperatorsParameter = list(updateOperatorsAddOrRemoveMichelson);
 
 // Token_metadata_registry types
 type token_metadata_registry_target is address;
 type token_metadata_registry_parameter is contract(token_metadata_registry_target);
 // type tokenMetadataRegistryTarget = address;
 // type tokenMetadataRegistryParameter = contract(tokenMetadataRegistryTarget);
+
+// Datatypes for updating whitelisters
+type update_whitelisters_add_or_remove is
+| Add_whitelister of address
+| Remove_whitelister of address
+type update_whitelisters_add_or_remove_michelson is michelson_or_right_comb(update_whitelisters_add_or_remove);
+type update_whitelisters_parameter is list(update_whitelisters_add_or_remove_michelson);
+
+// Datatypes for updating whitelisteds
+type update_whitelisteds_add_or_remove is
+| Add_whitelisted of address
+| Remove_whitelisted of address
+type update_whitelisteds_add_or_remove_michelson is michelson_or_right_comb(update_whitelisteds_add_or_remove);
+type update_whitelisteds_parameter is list(update_whitelisteds_add_or_remove_michelson);
 
 // The abreviation 'wl' for whitelist is used since Tezos limits type constructors to
 // a maximum length of 32 charactes
@@ -173,6 +162,8 @@ type action is
 | Set_non_revocable_wl_admin of address
 | Add_wl_admin of address
 | Renounce_wl_admin
+| Update_whitelisters of update_whitelisters_parameter
+| Update_whitelisteds of update_whitelisteds_parameter
 
 // operatorUpdatePolicy = Owner_update
 function can_update_operators (var token_owner: token_owner; var storage : storage) : unit is
@@ -231,7 +222,7 @@ function get_with_default_nat(const option : option(nat); const default : nat) :
         | None -> default
     end
 
-// Return true iff Tezos.source (transcation originator) has been granted access to spend from spender
+// Throw iff Tezos.source (transcation originator) has not been granted access to spend from spender
 function is_allowed ( const spender : address ; const value : nat ; var s : storage) : unit is
   begin
     if Tezos.sender =/= spender then block {
@@ -325,6 +316,74 @@ function token_metadata_registry(const token_metadata_registry_parameter: token_
     const callback_operation: operation = Tezos.transaction(Tezos.self_address, 0tez, token_metadata_registry_parameter);
  end with (list [callback_operation], storage)
 
+
+(***** UPDATE WHITELISTEDS *****)
+function update_whitelisteds ( var storage: storage; var whitelisted: address ; const add: bool): storage is
+ begin
+    // TODO: We do not check if the address is already whitelisted/already removed. Should we do that and throw an error if it is?
+    var whitelisteds: set(address) := storage.whitelisteds;
+    if add then block {
+        whitelisteds := Set.add(whitelisted, whitelisteds);
+    };
+    else block {
+       whitelisteds := Set.remove(whitelisted, whitelisteds);
+    };
+
+    storage.whitelisteds := whitelisteds;
+ end with storage
+
+function update_whitelisteds_iterator (var storage: storage; var update_whitelisteds_add_or_remove_michelson: update_whitelisteds_add_or_remove_michelson): storage is
+ begin
+    const update_whitelisteds_add_or_remove: update_whitelisteds_add_or_remove = Layout.convert_from_right_comb(update_whitelisteds_add_or_remove_michelson);
+    const ret: storage = case update_whitelisteds_add_or_remove of
+        | Add_whitelisted(whitelisted) -> update_whitelisteds(storage, whitelisted, True)
+        | Remove_whitelisted(whitelisted) -> update_whitelisteds(storage, whitelisted, False)
+    end
+ end with ret
+
+function update_whitelisteds(const update_whitelisteds_parameter: update_whitelisteds_parameter ; var storage: storage) : (list(operation) * storage) is
+ begin
+    if not (storage.whitelisters contains Tezos.sender) then failwith("FA2_ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS")
+    else skip;
+    storage := List.fold(update_whitelisteds_iterator, update_whitelisteds_parameter, storage);
+
+ end with ((nil: list(operation)), storage)
+
+
+(***** UPDATE WHITELISTERS *****)
+function update_whitelisters ( var storage: storage; var whitelister: address ; const add: bool): storage is
+ begin
+    // TODO: We do not check if the address is already whitelisted/already removed. Should we do that and throw an error if it is?
+    var whitelisters: set(address) := storage.whitelisters;
+    if add then block {
+        whitelisters := Set.add(whitelister, whitelisters);
+    };
+    else block {
+        whitelisters := Set.remove(whitelister, whitelisters);
+    };
+
+    storage.whitelisters := whitelisters;
+ end with storage
+
+function update_whitelisters_iterator (var storage: storage; var update_whitelisters_add_or_remove_michelson: update_whitelisters_add_or_remove_michelson): storage is
+ begin
+    const update_whitelisters_add_or_remove: update_whitelisters_add_or_remove = Layout.convert_from_right_comb(update_whitelisters_add_or_remove_michelson);
+    const ret: storage = case update_whitelisters_add_or_remove of
+        | Add_whitelister(whitelister) -> update_whitelisters(storage, whitelister, True)
+        | Remove_whitelister(whitelister) -> update_whitelisters(storage, whitelister, False)
+    end
+ end with ret
+
+function update_whitelisters(const update_whitelisters_parameter: update_whitelisters_parameter ; var storage: storage) : (list(operation) * storage) is
+ begin
+    if not (storage.whitelist_admins contains Tezos.sender) then failwith("FA2_ONLY_WHITELIST_ADMIN_CAN_UPDATE_WHITELISTERS")
+    else skip;
+    storage := List.fold(update_whitelisters_iterator, update_whitelisters_parameter, storage);
+
+ end with ((nil: list(operation)), storage)
+
+
+(***** UPDATE WHITELIST ADMINS *****)
 // Replace the existing non-revocable whitelist admin with a new
 // We do not verify that the existing non-revocable whitelist admin
 // is a whitelist admin as the contract could otherwise be initiated
@@ -377,6 +436,8 @@ function add_wl_admin(const new_whitelist_admin: address; const storage: storage
     storage.whitelist_admins := new_whitelist_admins;
   end with ((nil: list(operation)), storage)
 
+
+(***** MAIN FUNCTION *****)
 (* Default function that represents our contract, it's sole purpose here is the entrypoint routing *)
 function main (const action : action; var storage : storage) : (list(operation) * storage)
     is (case action of
@@ -391,6 +452,8 @@ function main (const action : action; var storage : storage) : (list(operation) 
     | Set_non_revocable_wl_admin(new_non_revocable_whitelist_admin) -> set_non_revocable_wl_admin(new_non_revocable_whitelist_admin, storage)
     | Add_wl_admin(new_whitelist_admin) -> add_wl_admin(new_whitelist_admin, storage)
     | Renounce_wl_admin -> renounce_wl_admin(storage)
+    | Update_whitelisters(update_whitelisters_parameter) -> update_whitelisters(update_whitelisters_parameter, storage)
+    | Update_whitelisteds(update_whitelisteds_parameter) -> update_whitelisteds(update_whitelisteds_parameter, storage)
 
     (* This is just a placeholder *)
     // | U -> ((nil : list(operation)), storage)
