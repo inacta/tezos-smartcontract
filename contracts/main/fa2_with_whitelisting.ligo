@@ -282,6 +282,8 @@ function transfer (const transfer_param : transfer_param; var storage : storage)
             const unit_value: unit = is_allowed(transfer.from_, transfer.amount, storage);
 
             if transfer.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
+            if not (storage.whitelisteds contains transfer.from_) then failwith ("FA2_RECEIVER_NOT_WHITELISTED") else skip;
+            if not (storage.whitelisteds contains transfer.to_) then failwith ("FA2_SENDER_NOT_WHITELISTED") else skip;
 
             const sender_balance: nat = get_token_balance(transfer.token_id, transfer.from_, storage);
             if sender_balance < transfer.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
