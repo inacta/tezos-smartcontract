@@ -40,7 +40,7 @@ contract('fa2_wl', accounts => {
         /**
          * Display the current contract address for debugging purposes
          */
-        // console.log('Contract deployed at:', tzip_12_tutorial_instance.address);
+        console.log('Contract deployed at:', tzip_12_tutorial_instance.address);
         storage = await fa2_wl_instance.storage();
     });
 
@@ -515,6 +515,102 @@ contract('fa2_wl', accounts => {
             await removeWhitelisters([alice.pkh]);
         });
     });
+
+    describe('Verify whitelisting behavior', () => {
+        it('follows correct rules for whitelisting', async () => {
+
+            // Allow Alice (transaction originator) to update whitelisteds set
+            // We need this for later
+            await addWhitelisters([alice.pkh]);
+
+            const aliceAccountStart = await storage.ledger.get(alice.pkh);
+            const bobAccountStart = await storage.ledger.get(bob.pkh);
+            var transferParamSingle = [
+                {
+                    token_id: 0,
+                    amount: 1,
+                    from_: alice.pkh,
+                    to_: bob.pkh
+                }
+            ];
+            var transferParamMultiple = [
+                {
+                    token_id: 0,
+                    amount: 1,
+                    from_: alice.pkh,
+                    to_: bob.pkh
+                },
+                {
+                    token_id: 0,
+                    amount: 1,
+                    from_: alice.pkh,
+                    to_: charlie.pkh
+                }
+            ];
+
+            // Neither sender nor receiver are whitelisted. Verify that is fails with message
+            // FA2_SENDER_NOT_WHITELISTED
+            try {
+                await fa2_wl_instance.transfer(transferParamSingle);
+            } catch (e) {
+                assert.equal(e.message, constants.contractErrors.senderNotWhitelisted), 'fail when neither sender nor receiver are whitelisted';
+            }
+
+            try {
+                await fa2_wl_instance.transfer(transferParamMultiple);
+            } catch (e) {
+                assert.equal(e.message, constants.contractErrors.senderNotWhitelisted);
+            }
+
+            expect((await storage.ledger.get(alice.pkh)).balance.isEqualTo(aliceAccountStart.balance)).to.be.true;
+            expect((await storage.ledger.get(bob.pkh)).balance.isEqualTo(bobAccountStart.balance)).to.be.true;
+            // storage.ledger.get(alice.pkh).then(acc => expect(acc.balance.isEqualTo(aliceAccountStart.balance)).to.be.true);
+            // storage.ledger.get(bob.pkh).then(acc => expect(acc.balance.isEqualTo(bobAccountStart.balance)).to.be.true);
+
+            // Whitelist sender but not receiver, verify that call fails with message FA2_RECEIVER_NOT_WHITELISTED
+            await addWhitelisteds([alice.pkh]);
+            try {
+                await fa2_wl_instance.transfer(transferParamSingle);
+            } catch (e) {
+                assert.equal(e.message, constants.contractErrors.receiverNotWhitelisted);
+            }
+
+            expect((await storage.ledger.get(alice.pkh)).balance.isEqualTo(aliceAccountStart.balance)).to.be.true;
+            expect((await storage.ledger.get(bob.pkh)).balance.isEqualTo(bobAccountStart.balance)).to.be.true;
+
+            // Whitelist receiver and remove whitelisting from sender. Verify that call fails with FA2_SENDER_NOT_WHITELISTED
+            await removeWhitelisteds([alice.pkh]);
+            await addWhitelisteds([bob.pkh]);
+            try {
+                await fa2_wl_instance.transfer(transferParamSingle);
+            } catch (e) {
+                assert.equal(e.message, constants.contractErrors.senderNotWhitelisted);
+            }
+
+            expect((await storage.ledger.get(alice.pkh)).balance.isEqualTo(aliceAccountStart.balance)).to.be.true;
+            expect((await storage.ledger.get(bob.pkh)).balance.isEqualTo(bobAccountStart.balance)).to.be.true;
+
+            // Whitelist sender *and* receiver. Verify that the call succeeds and that the balance changes
+            await addWhitelisteds([alice.pkh]);
+            await fa2_wl_instance.transfer(transferParamSingle);
+            expect((await storage.ledger.get(alice.pkh)).balance.isEqualTo(aliceAccountStart.balance.minus(1))).to.be.true;
+            expect((await storage.ledger.get(bob.pkh)).balance.isEqualTo(bobAccountStart.balance.plus(1))).to.be.true;
+
+            // Verify that all transfers fail if one of the elements in the parameter to the function call fails
+            // Here, Charlie is not whitelisted, but Alice and Bob are. Since one transfer call fails, all must fail
+            try {
+                await fa2_wl_instance.transfer(transferParamMultiple);
+            } catch (e) {
+                assert.equal(e.message, constants.contractErrors.receiverNotWhitelisted);
+            }
+            expect((await storage.ledger.get(alice.pkh)).balance.isEqualTo(aliceAccountStart.balance.minus(1))).to.be.true;
+            expect((await storage.ledger.get(bob.pkh)).balance.isEqualTo(bobAccountStart.balance.plus(1))).to.be.true;
+
+            // Remove both whitelisters and whitelisteds to restore state
+            await removeWhitelisteds([alice.pkh, bob.pkh]);
+            await removeWhitelisters([alice.pkh]);
+        });
+    })
 
     // We run this test last since it tends to mess up the state of the contract
     // leaving our caller Alice without WL admin rights.
