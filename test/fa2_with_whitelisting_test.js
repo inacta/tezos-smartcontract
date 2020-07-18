@@ -1,9 +1,9 @@
 const BigNumber = require('bignumber.js');
 const fa2_wl = artifacts.require('fa2_with_whitelisting');
-const { networks } = require('./../truffle-config');
 
-const { deployWithAliceAsWlAdmin, initial_storage } = require('../migrations/1_deploy_tzip_12_tutorial.js');
+const { initial_storage } = require('../migrations/1_deploy_fa2_with_whitelisting.js');
 const constants = require('./../helpers/constants.js');
+
 /**
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.

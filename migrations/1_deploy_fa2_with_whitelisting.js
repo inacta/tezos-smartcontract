@@ -32,11 +32,6 @@ const initial_storage = {
     non_revocable_whitelist_admin: alice.pkh
 };
 
-module.exports.deployWithAliceAsWlAdmin = () => {
-    fa2_wl.deploy(fa2_wl, initial_storage)
-    .then(contract => saveContractAddress('tzip12', contract.address));
-}
-
 module.exports = async (deployer, network, accounts) => {
 
     // TODO format to await instead of .then
