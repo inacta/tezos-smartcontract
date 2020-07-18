@@ -40,7 +40,7 @@ contract('fa2_wl', accounts => {
         /**
          * Display the current contract address for debugging purposes
          */
-        console.log('Contract deployed at:', tzip_12_tutorial_instance.address);
+        console.log('Contract deployed at:', fa2_wl_instance.address);
         storage = await fa2_wl_instance.storage();
     });
 
