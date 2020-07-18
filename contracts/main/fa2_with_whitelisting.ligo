@@ -220,7 +220,7 @@ function account_balance_with_default_nat(const account_option: option(account);
     case account_option of
         | Some(value) -> value.balance
         | None -> default
-end
+end;
 
 const default_token_balance: token_balance = 0n;
 function get_token_balance (var token_id: token_id; var token_owner: token_owner; var storage: storage) : token_balance is
@@ -276,8 +276,8 @@ begin
 end with Unit;
 
 // TODO: This is very ineffective in terms of gas, big optimizations should be possible
-function transfer (const transfer_param : transfer_param; var storage : storage) : (list(operation) * storage)
- is begin
+function transfer (const transfer_param : transfer_param; var storage : storage) : (list(operation) * storage) is
+begin
     function transfer_iterator (const storage : storage; const transfer : transfer) : storage
         is begin
             (* Verify that transaction originator is allowed to spend from this address *)
@@ -313,14 +313,14 @@ function transfer (const transfer_param : transfer_param; var storage : storage)
         end with storage;
 
     storage := list_fold(transfer_iterator, transfer_param, storage);
- end with ((nil : list(operation)), storage)
+end with ((nil : list(operation)), storage);
 
 
 (***** TOKEN METADATA *****)
 function token_metadata_registry(const token_metadata_registry_parameter: token_metadata_registry_parameter; const  storage: storage): (list(operation) * storage) is
  begin
     const callback_operation: operation = Tezos.transaction(Tezos.self_address, 0tez, token_metadata_registry_parameter);
- end with (list [callback_operation], storage)
+ end with (list [callback_operation], storage);
 
 
 (***** UPDATE WHITELISTEDS *****)
@@ -388,7 +388,7 @@ begin
     else skip;
     storage := List.fold(update_whitelisters_iterator, update_whitelisters_parameter, storage);
 
-end with ((nil: list(operation)), storage)
+end with ((nil: list(operation)), storage);
 
 
 (***** UPDATE WHITELIST ADMINS *****)
