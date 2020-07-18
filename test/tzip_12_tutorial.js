@@ -10,9 +10,30 @@ const constants = require('./../helpers/constants.js');
  */
 const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
 
+
 contract('fa2_wl', accounts => {
     let storage;
     let fa2_wl_instance;
+
+    async function addWhitelisters(new_whitelister_addresses) {
+        const whitelisterParam = new_whitelister_addresses.map(function(x) {  return { 'add_whitelister': x } });
+        await fa2_wl_instance.update_whitelisters(whitelisterParam);
+    }
+
+    async function addWhitelisteds(new_whitelisted_addresses) {
+        const whitelistedParam = new_whitelisted_addresses.map(function(x) {  return { 'add_whitelisted': x } });
+        await fa2_wl_instance.update_whitelisteds(whitelistedParam);
+    }
+
+    async function removeWhitelisters(whitelister_addresses){
+        const whitelisterParam = whitelister_addresses.map(function(x) {  return { 'remove_whitelister': x } });
+        await fa2_wl_instance.update_whitelisters(whitelisterParam);
+    }
+
+    async function removeWhitelisteds(whitelisted_addresses){
+        const whitelistedParam = whitelisted_addresses.map(function(x) {  return { 'remove_whitelisted': x } });
+        await fa2_wl_instance.update_whitelisteds(whitelistedParam);
+    }
 
     before(async () => {
         fa2_wl_instance = await fa2_wl.deployed();
@@ -326,16 +347,18 @@ contract('fa2_wl', accounts => {
             assert.equal(accountCharlie, undefined);
         });
 
-        const transferAmount = 1;
         it(`should transfer 1 token from Alice to Bob`, async () => {
+            const transferAmount = 1;
             const accountBobBefore = await storage.ledger.get(bob.pkh);
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
 
+            // Add Alice and Bob to whitelisteds. Since the transactions originate from Alice's address,
+            // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
+            await addWhitelisters([alice.pkh]);
+            await addWhitelisteds([alice.pkh, bob.pkh]);
+
             const transferParam = [
                 {
-                    /**
-                     * token_id: 0 represents the single token_id within our contract
-                     */
                     token_id: 0,
                     amount: transferAmount,
                     from_: alice.pkh,
@@ -348,9 +371,21 @@ contract('fa2_wl', accounts => {
             const accountAliceAfter = await storage.ledger.get(alice.pkh);
             expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance.minus(transferAmount))).to.be.true;
             expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance.plus(transferAmount))).to.be.true;
+
+            // Remove Alice and Bob from whitelisted. This must be done in the opposite
+            // order of how they were added
+            // Done to keep state of test runtime unaffected from this test
+            await removeWhitelisteds([alice.pkh, bob.pkh]);
+            await removeWhitelisters([alice.pkh]);
         });
 
         it(`should not allow transfers from an address that did not sign the transaction and that has not been made operator`, async () => {
+
+            // Add Alice and Bob to whitelisteds. Since the transactions originate from Alice's address,
+            // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
+            await addWhitelisters([alice.pkh]);
+            await addWhitelisteds([alice.pkh, bob.pkh]);
+
             const tsfAmount = 5;
             const transferParam = [
                 {
@@ -389,9 +424,21 @@ contract('fa2_wl', accounts => {
                 ranToCompletion = true;
             }
             assert.equal(ranToCompletion, true);
+
+            // Remove Alice and Bob from whitelisted. This must be done in the opposite
+            // order of how they were added
+            // Done to keep state of test runtime unaffected from this test
+            await removeWhitelisteds([alice.pkh, bob.pkh]);
+            await removeWhitelisters([alice.pkh]);
         });
 
         it( "should allow an address in the allowances list to withdraw from an account", async () => {
+
+            // Add Alice, Bob and David to whitelisteds. Since the transactions originate from Alice's address,
+            // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
+            await addWhitelisters([alice.pkh]);
+            await addWhitelisteds([alice.pkh, bob.pkh, david.pkh]);
+
             // Verify that 1 can be withdrawn as this is David's balance
             var accountDavid = await storage.ledger.get(david.pkh);
             expect(accountDavid.balance.isEqualTo(new BigNumber(2))).to.be.true;
@@ -424,13 +471,21 @@ contract('fa2_wl', accounts => {
                 ranToCompletion = true;
             }
             assert.equal(ranToCompletion, true);
+
+            // Remove Alice and Bob from whitelisted. This must be done in the opposite
+            // order of how they were added
+            // Done to keep state of test runtime unaffected from this test
+            await removeWhitelisteds([alice.pkh, bob.pkh, david.pkh]);
+            await removeWhitelisters([alice.pkh]);
         } )
 
         it(`should not transfer tokens from Alice to Bob when Alice's balance is insufficient`, async () => {
+            await addWhitelisters([alice.pkh]);
+            await addWhitelisteds([alice.pkh, bob.pkh]);
+
             const transferParam = [
                 {
                     token_id: 0,
-                    // Alice's balance at this point is 9
                     amount: 100,
                     from_: alice.pkh,
                     to_: bob.pkh
@@ -445,6 +500,19 @@ contract('fa2_wl', accounts => {
                 ranToCompletion = true;
             }
             assert.equal(ranToCompletion, true);
+
+            // Change amount and verify that it works
+            transferParam[0].amount = 1;
+            const accountAliceBefore = await storage.ledger.get(alice.pkh);
+            const accountBobBefore = await storage.ledger.get(bob.pkh);
+            await fa2_wl_instance.transfer(transferParam);
+            const accountAliceAfter = await storage.ledger.get(alice.pkh);
+            const accountBobAfter = await storage.ledger.get(bob.pkh);
+            expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance.minus(1))).to.be.true;
+            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance.plus(1))).to.be.true;
+
+            await removeWhitelisteds([alice.pkh, bob.pkh]);
+            await removeWhitelisters([alice.pkh]);
         });
     });
 
