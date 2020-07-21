@@ -348,7 +348,6 @@ contract('fa2_wl', accounts => {
         });
 
         it(`should transfer 1 token from Alice to Bob`, async () => {
-            const transferAmount = 1;
             const accountBobBefore = await storage.ledger.get(bob.pkh);
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
 
@@ -357,18 +356,44 @@ contract('fa2_wl', accounts => {
             await addWhitelisters([alice.pkh]);
             await addWhitelisteds([alice.pkh, bob.pkh]);
 
+            // Verify that transactions with 0 amount are possible, and that they
+            // do not affect balances (part of FA2 spec that this must pass)
             const transferParam = [
                 {
                     token_id: 0,
-                    amount: transferAmount,
+                    amount: 0,
                     from_: alice.pkh,
                     to_: bob.pkh
                 }
             ];
-
             await fa2_wl_instance.transfer(transferParam);
-            const accountBobAfter = await storage.ledger.get(bob.pkh);
-            const accountAliceAfter = await storage.ledger.get(alice.pkh);
+            var accountBobAfter = await storage.ledger.get(bob.pkh);
+            var accountAliceAfter = await storage.ledger.get(alice.pkh);
+            expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance)).to.be.true;
+            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance)).to.be.true;
+
+            // Verify that Alice can send to herself. It is a part of the FA2 spec
+            // that this must pass. Verify this for both 0 amount and 1 amount
+            transferParam[0].to_ = alice.pkh;
+            await fa2_wl_instance.transfer(transferParam);
+            accountBobAfter = await storage.ledger.get(bob.pkh);
+            accountAliceAfter = await storage.ledger.get(alice.pkh);
+            expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance)).to.be.true;
+            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance)).to.be.true;
+
+            const transferAmount = 1;
+            transferParam[0].amount = transferAmount;
+            await fa2_wl_instance.transfer(transferParam);
+            accountBobAfter = await storage.ledger.get(bob.pkh);
+            accountAliceAfter = await storage.ledger.get(alice.pkh);
+            expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance)).to.be.true;
+            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance)).to.be.true;
+
+            // Verify that 1 token can be transferred from Alice to Bob
+            transferParam[0].to_ = bob.pkh;
+            await fa2_wl_instance.transfer(transferParam);
+            var accountBobAfter = await storage.ledger.get(bob.pkh);
+            var accountAliceAfter = await storage.ledger.get(alice.pkh);
             expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance.minus(transferAmount))).to.be.true;
             expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance.plus(transferAmount))).to.be.true;
 
