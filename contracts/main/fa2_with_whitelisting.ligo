@@ -289,6 +289,7 @@ begin
 
             const sender_balance: nat = get_token_balance(transfer.token_id, transfer.from_, storage);
             if sender_balance < transfer.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
+
             (* Update the ledger accordingly *)
             var sender_account: account := record
                 balance = 0n;
