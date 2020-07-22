@@ -7,7 +7,7 @@ const saveContractAddress = require('./../helpers/saveContractAddress');
 // operation
 const initial_storage = {
     tmr_response: bob.pkh,
-    unit_value: UnitValue
+    balance_responses: []
 };
 
 module.exports = async (deployer, network, accounts) => {
