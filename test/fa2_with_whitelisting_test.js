@@ -15,6 +15,7 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
 
 contract('fa2_wl', accounts => {
     let storage;
+    let wrapper_storage;
     let fa2_wl_instance;
     let fa2_wl_wrapper_instance;
 
@@ -53,12 +54,12 @@ contract('fa2_wl', accounts => {
 
     describe('token contract wrapper', () => {
         it('Token_metadata_registry endpoint responds with expected address', async () => {
-            assert.equal(wrapper_storage, bob.pkh, "wrapper storage is initiated to Bob's PKH");
+            assert.equal(wrapper_storage.tmr_response, bob.pkh, "wrapper storage is initiated to Bob's PKH");
 
             // Make method call and verify that this updates the storage of the wrapper contract
-            await fa2_wl_wrapper_instance.method(fa2_wl_instance.address);
+            await fa2_wl_wrapper_instance.call_token_metadata_registry(fa2_wl_instance.address);
             wrapper_storage = await fa2_wl_wrapper_instance.storage();
-            assert.equal(wrapper_storage, fa2_wl_instance.address, "wrapper storage is changed to the FA2 contract address as this is where the contract metadata is found");
+            assert.equal(wrapper_storage.tmr_response, fa2_wl_instance.address, "wrapper storage is changed to the FA2 contract address as this is where the contract metadata is found");
         });
     });
 
