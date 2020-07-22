@@ -19,22 +19,22 @@ contract('fa2_wl', accounts => {
     let fa2_wl_wrapper_instance;
 
     async function addWhitelisters(new_whitelister_addresses) {
-        const whitelisterParam = new_whitelister_addresses.map(function(x) {  return { 'add_whitelister': x } });
+        const whitelisterParam = new_whitelister_addresses.map(function (x) { return { 'add_whitelister': x } });
         await fa2_wl_instance.update_whitelisters(whitelisterParam);
     }
 
     async function addWhitelisteds(new_whitelisted_addresses) {
-        const whitelistedParam = new_whitelisted_addresses.map(function(x) {  return { 'add_whitelisted': x } });
+        const whitelistedParam = new_whitelisted_addresses.map(function (x) { return { 'add_whitelisted': x } });
         await fa2_wl_instance.update_whitelisteds(whitelistedParam);
     }
 
-    async function removeWhitelisters(whitelister_addresses){
-        const whitelisterParam = whitelister_addresses.map(function(x) {  return { 'remove_whitelister': x } });
+    async function removeWhitelisters(whitelister_addresses) {
+        const whitelisterParam = whitelister_addresses.map(function (x) { return { 'remove_whitelister': x } });
         await fa2_wl_instance.update_whitelisters(whitelisterParam);
     }
 
-    async function removeWhitelisteds(whitelisted_addresses){
-        const whitelistedParam = whitelisted_addresses.map(function(x) {  return { 'remove_whitelisted': x } });
+    async function removeWhitelisteds(whitelisted_addresses) {
+        const whitelistedParam = whitelisted_addresses.map(function (x) { return { 'remove_whitelisted': x } });
         await fa2_wl_instance.update_whitelisteds(whitelistedParam);
     }
 
@@ -233,7 +233,7 @@ contract('fa2_wl', accounts => {
 
             var whitelistedParam = [
                 {
-                'add_whitelisted': bob.pkh
+                    'add_whitelisted': bob.pkh
                 }
             ];
 
@@ -250,7 +250,7 @@ contract('fa2_wl', accounts => {
             // Add Alice as Whitelister and verify that she can now add Bob as whitelisted
             var whitelisterParam = [
                 {
-                'add_whitelister': alice.pkh
+                    'add_whitelister': alice.pkh
                 }
             ];
             await fa2_wl_instance.update_whitelisters(whitelisterParam);
@@ -263,7 +263,7 @@ contract('fa2_wl', accounts => {
             // Verify that whitelisteds can be removed again
             whitelistedParam = [
                 {
-                'remove_whitelisted': bob.pkh
+                    'remove_whitelisted': bob.pkh
                 }
             ];
             await fa2_wl_instance.update_whitelisteds(whitelistedParam);
@@ -274,7 +274,7 @@ contract('fa2_wl', accounts => {
             // Remove whitelister again to restore state, as it keeps interfering with later tests
             whitelisterParam = [
                 {
-                'remove_whitelister': alice.pkh
+                    'remove_whitelister': alice.pkh
                 }
             ];
             await fa2_wl_instance.update_whitelisters(whitelisterParam);
@@ -292,7 +292,7 @@ contract('fa2_wl', accounts => {
             // Add Bob as whitelister and verify that this works
             var whitelisterParam = [
                 {
-                'add_whitelister': bob.pkh
+                    'add_whitelister': bob.pkh
                 }
             ];
             await fa2_wl_instance.update_whitelisters(whitelisterParam);
@@ -303,10 +303,10 @@ contract('fa2_wl', accounts => {
             // Add self and bob as whitelister in one call and verify that this works
             var whitelisterParam = [
                 {
-                'add_whitelister': bob.pkh
+                    'add_whitelister': bob.pkh
                 },
                 {
-                'add_whitelister': alice.pkh
+                    'add_whitelister': alice.pkh
                 }
             ];
             await fa2_wl_instance.update_whitelisters(whitelisterParam);
@@ -318,10 +318,10 @@ contract('fa2_wl', accounts => {
             // Add Bob and Alice again and verify that nothing changes
             var whitelisterParam = [
                 {
-                'add_whitelister': bob.pkh
+                    'add_whitelister': bob.pkh
                 },
                 {
-                'add_whitelister': alice.pkh
+                    'add_whitelister': alice.pkh
                 }
             ];
             await fa2_wl_instance.update_whitelisters(whitelisterParam);
@@ -333,10 +333,10 @@ contract('fa2_wl', accounts => {
             // Remove Alice and Bob and verify that this works
             var whitelisterParam = [
                 {
-                'remove_whitelister': bob.pkh
+                    'remove_whitelister': bob.pkh
                 },
                 {
-                'remove_whitelister': alice.pkh
+                    'remove_whitelister': alice.pkh
                 }
             ];
             await fa2_wl_instance.update_whitelisters(whitelisterParam);
@@ -475,7 +475,7 @@ contract('fa2_wl', accounts => {
             await removeWhitelisters([alice.pkh]);
         });
 
-        it( "should allow an address in the allowances list to withdraw from an account", async () => {
+        it("should allow an address in the allowances list to withdraw from an account", async () => {
 
             // Add Alice, Bob and David to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
@@ -520,7 +520,7 @@ contract('fa2_wl', accounts => {
             // Done to keep state of test runtime unaffected from this test
             await removeWhitelisteds([alice.pkh, bob.pkh, david.pkh]);
             await removeWhitelisters([alice.pkh]);
-        } )
+        })
 
         it(`should not transfer tokens from Alice to Bob when Alice's balance is insufficient`, async () => {
             await addWhitelisters([alice.pkh]);
