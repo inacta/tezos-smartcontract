@@ -1,7 +1,9 @@
 const BigNumber = require('bignumber.js');
 const fa2_wl = artifacts.require('fa2_with_whitelisting');
+const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 
 const { initial_storage } = require('../migrations/1_deploy_fa2_with_whitelisting.js');
+const { wrapper_initial_storage } = require('../migrations/1_deploy_fa2_wl_wrapper.js');
 const constants = require('./../helpers/constants.js');
 
 /**
@@ -14,6 +16,7 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
 contract('fa2_wl', accounts => {
     let storage;
     let fa2_wl_instance;
+    let fa2_wl_wrapper_instance;
 
     async function addWhitelisters(new_whitelister_addresses) {
         const whitelisterParam = new_whitelister_addresses.map(function(x) {  return { 'add_whitelister': x } });
@@ -37,11 +40,26 @@ contract('fa2_wl', accounts => {
 
     before(async () => {
         fa2_wl_instance = await fa2_wl.deployed();
+        fa2_wl_wrapper_instance = await fa2_wl_wrapper.deployed();
+
         /**
          * Display the current contract address for debugging purposes
          */
         console.log('Contract deployed at:', fa2_wl_instance.address);
+        console.log('Wrapper contract deployed at:', fa2_wl_wrapper_instance.address);
         storage = await fa2_wl_instance.storage();
+        wrapper_storage = await fa2_wl_wrapper_instance.storage();
+    });
+
+    describe('token contract wrapper', () => {
+        it('Token_metadata_registry endpoint responds with expected address', async () => {
+            assert.equal(wrapper_storage, bob.pkh, "wrapper storage is initiated to Bob's PKH");
+
+            // Make method call and verify that this updates the storage of the wrapper contract
+            await fa2_wl_wrapper_instance.method(fa2_wl_instance.address);
+            wrapper_storage = await fa2_wl_wrapper_instance.storage();
+            assert.equal(wrapper_storage, fa2_wl_instance.address, "wrapper storage is changed to the FA2 contract address as this is where the contract metadata is found");
+        });
     });
 
     describe('get token information', () => {
