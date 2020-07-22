@@ -1,6 +1,0 @@
-#!/bin/bash
-
-ligo dry-run contracts/main/fa2_with_whitelisting.ligo --syntax pascaligo --format=json --sender="tz1QmL462eax1S2PvJC6TZdNg7TsxxfJSkzx" main 'Add_wl_admin(("tz1QmL462eax1S2PvJC6TZdNg7TsxxfJSkzx": address))' 'record [    non_revocable_whitelist_admin=("tz1QmL462eax1S2PvJC6TZdNg7TsxxfJSkzx":address); whitelist_admins=(set []: set(address));     whitelisters=(set []: set(address)); whitelisteds=(set []: set(address)); ledger=big_map[("tz1QmL462eax1S2PvJC6TZdNg7TsxxfJSkzx" : address)->record[balance=1000000n; allowances=(set[
-]: set(address));]];     token_metadata=big_map[0n->record[token_id=0n; symbol="CVL"; name="CVL"; decimals=8n; extras=(map []: map (string,string)  )]];     ]'
-# EXPECT
-# {"value":null,"failure":"failwith(\"FA2_ONLY_WHITELIST_ADMIN_CAN_ADD_WHITELIST_ADMINS\")"}
