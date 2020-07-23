@@ -134,7 +134,7 @@ contract('fa2_wl', accounts => {
                         }
                     }]);
                 } catch (error) {
-                    assert.equal(error.message, constants.contractErrors.fromEqualToSenderAddress);
+                    assert.equal(error.message, constants.contractErrors.notOperator);
                 }
             });
 
@@ -507,7 +507,7 @@ contract('fa2_wl', accounts => {
                 await fa2_wl_instance.transfer(transferParam);
 
             } catch (e) {
-                assert.equal(e.message, constants.contractErrors.fromEqualToSenderAddress);
+                assert.equal(e.message, constants.contractErrors.notOperator);
                 accountBobAfter = await storage.ledger.get(bob.pkh);
                 accountAliceAfter = await storage.ledger.get(alice.pkh);
                 expect(accountBobBefore.balance.isEqualTo(accountBobAfter.balance)).to.be.true;

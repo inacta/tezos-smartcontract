@@ -7,7 +7,7 @@ module.exports = {
         }
     },
     contractErrors: {
-        fromEqualToSenderAddress: "FA2_NOT_OPERATOR",
+        notOperator: "FA2_NOT_OPERATOR",
         insufficientBalance: "FA2_INSUFFICIENT_BALANCE",
         unknownTokenId: "FA2_TOKEN_UNDEFINED",
         approveOnBehalfOfOthers: "Only owner can update operators",
