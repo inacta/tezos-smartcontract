@@ -608,7 +608,7 @@ contract('fa2_wl', accounts => {
     });
 
     describe('Verify whitelisting behavior', () => {
-        it('follows correct rules for whitelisting', async () => {
+        it('follows the correct whitelist rules for transfers', async () => {
 
             // Allow Alice (transaction originator) to update whitelisteds set
             // We need this for later
