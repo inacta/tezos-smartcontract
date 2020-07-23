@@ -1,7 +1,8 @@
-(* Storage type for the tzip-12 tutorial smart contract *)
-(* Alias types to new names for better readability *)
+(***** Shared types *****)
 type token_owner is address;
-type token_lookup_id is token_owner; // If changing contract to handle multiple assets,
+
+ // If changing contract to handle multiple assets, add token_id to token_lookup_id
+type token_lookup_id is token_owner;
 type token_balance is nat;
 
 type account is record
@@ -28,7 +29,8 @@ end;
 
 type token_id is nat;
 
-// Transfer types
+
+(***** Transfer types *****)
 type transfer is record
     token_id : token_id;
     amount : token_balance;
@@ -38,76 +40,45 @@ end;
 
 type transfer_param is list(transfer);
 
-// Balance_of types
+
+(***** Balance_of types *****)
 type balance_of_request is record
     owner: token_owner;
     token_id: token_id;
 end;
-
-// type balanceOfRequest = {
-//     owner: tokenOwner,
-//     token_id: tokenId,
-// };
 
 type balance_of_response is record
     request: balance_of_request;
     balance: token_balance;
 end;
 
-// type balanceOfResponse = {
-//     request: balanceOfRequest,
-//     balance: tokenBalance,
-// };
-
 type balance_of_callback is contract(list(balance_of_response));
-
-// type balanceOfCallback = contract(list(balanceOfResponse));
 
 type balance_of_parameter is record
     requests: list(balance_of_request);
     callback: balance_of_callback;
 end;
 
-// type balanceOfParameter = {
-//     requests: list(balanceOfRequest),
-//     callback: balanceOfCallback,
-// };
-
 type balance_of_request_michelson is michelson_pair_right_comb(balance_of_request);
-
-// type balanceOfRequestMichelson = michelson_pair_right_comb(balanceOfRequest);
 
 type balance_of_response_auxiliary is record [
     balance: token_balance;
     request: balance_of_request_michelson;
 ]
 
-// type balanceOfResponseAuxiliary = {
-//     request: balanceOfRequestMichelson,
-//     balance: tokenBalance
-// };
-
 type balance_of_response_michelson is michelson_pair_right_comb(balance_of_response_auxiliary);
 
-// type balanceOfResponseMichelson = michelson_pair_right_comb(balanceOfResponseAuxiliary);
-
 type balance_of_callback_michelson is contract(list(balance_of_response_michelson));
-
-// type balanceOfCallbackMichelson = contract(list(balanceOfResponseMichelson));
 
 type balance_of_parameter_auxiliary is record [
     requests: list(balance_of_request_michelson);
     callback: balance_of_callback_michelson;
 ]
 
-// type balanceOfParameterAuxiliary = {
-//     requests: list(balanceOfRequestMichelson),
-//     callback: balanceOfCallbackMichelson
-// };
-
 type balance_of_parameter_michelson is michelson_pair_right_comb(balance_of_parameter_auxiliary);
 
-// Update_operators types
+
+(***** Update_operators types *****)
 type token_operator is address;
 
 type operator_parameter is record [
@@ -116,8 +87,8 @@ type operator_parameter is record [
 ]
 
 type update_operators_add_or_remove is
-// // There's an extra `_p` in the constructors below to avoid 'redundant constructor' error
-// // due to the interop type conversions below
+// There's an extra `_p` in the constructors below to avoid 'redundant constructor' error
+// due to the interop type conversions below
 // Type constructors have to start with capital letters
 | Add_operator_p of operator_parameter
 | Remove_operator_p of operator_parameter
@@ -132,26 +103,29 @@ type update_operators_add_or_remove_michelson is michelson_or_right_comb(update_
 
 type update_operators_parameter is list(update_operators_add_or_remove_michelson);
 
-// Token_metadata_registry types
+
+(***** Token_metadata_registry types *****)
 type token_metadata_registry_target is address;
 type token_metadata_registry_parameter is contract(token_metadata_registry_target);
-// type tokenMetadataRegistryTarget = address;
-// type tokenMetadataRegistryParameter = contract(tokenMetadataRegistryTarget);
 
-// Datatypes for updating whitelisters
+
+(***** Update_whitelisters types *****)
 type update_whitelisters_add_or_remove is
 | Add_whitelister of address
 | Remove_whitelister of address
 type update_whitelisters_add_or_remove_michelson is michelson_or_right_comb(update_whitelisters_add_or_remove);
 type update_whitelisters_parameter is list(update_whitelisters_add_or_remove_michelson);
 
-// Datatypes for updating whitelisteds
+
+(***** Update_whitelisteds types *****)
 type update_whitelisteds_add_or_remove is
 | Add_whitelisted of address
 | Remove_whitelisted of address
 type update_whitelisteds_add_or_remove_michelson is michelson_or_right_comb(update_whitelisteds_add_or_remove);
 type update_whitelisteds_parameter is list(update_whitelisteds_add_or_remove_michelson);
 
+
+(***** actions -- defines available endpoints *****)
 // The abreviation 'wl' for whitelist is used since Tezos limits type constructors to
 // a maximum length of 32 charactes
 type action is
@@ -167,7 +141,6 @@ type action is
 
 
 (***** UPDATE_OPERATORS *****)
-// operatorUpdatePolicy = Owner_update
 function can_update_operators (var token_owner: token_owner; var storage : storage) : unit is
 begin
     if Tezos.sender =/= token_owner then failwith("Only owner can update operators") else skip;
