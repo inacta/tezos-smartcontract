@@ -123,6 +123,7 @@ contract('fa2_wl', accounts => {
 
     describe('update operators', () => {
         describe('add operator', () => {
+            // FIXME: Swap owner and operator, add expectThrows and fix error message
             it('should not be allowed to add an operator for an address where the transaction is not originating', async () => {
                 const tokenOwner = alice.pkh;
                 const tokenOperator = bob.pkh;
