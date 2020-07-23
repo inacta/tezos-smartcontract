@@ -14,9 +14,22 @@ function removeWhitelisteds(whitelisted_addresses) {
     return whitelisted_addresses.map(function (x) { return { 'remove_whitelisted': x.pkh } });
 }
 
+async function expectThrow (promise, message) {
+    try {
+        await promise
+    } catch (error) {
+        if (message !== undefined) {
+            assert(error.message === message, `Expected '${message}' to equal '${error.message}'`)
+        }
+        return
+    }
+    assert.fail('Expected throw not received')
+}
+
 module.exports = {
     addWhitelisters,
     addWhitelisteds,
     removeWhitelisters,
-    removeWhitelisteds
+    removeWhitelisteds,
+    expectThrow,
 }
