@@ -292,9 +292,9 @@ end with ((nil : list(operation)), storage);
 
 (***** TOKEN METADATA *****)
 function token_metadata_registry(const token_metadata_registry_parameter: token_metadata_registry_parameter; const  storage: storage): (list(operation) * storage) is
- begin
+begin
     const callback_operation: operation = Tezos.transaction(Tezos.self_address, 0tez, token_metadata_registry_parameter);
- end with (list [callback_operation], storage);
+end with (list [callback_operation], storage);
 
 
 (***** UPDATE WHITELISTEDS *****)
