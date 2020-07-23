@@ -8,6 +8,7 @@ const constants = require('./../helpers/constants.js');
  * make sure to replace the keys for alice/bob accordingly.
  */
 const { alice, bob} = require('./../scripts/sandbox/accounts');
+const { expectThrow } = require('./util.js');
 
 
 contract('fa2_wl', _accounts => {
@@ -31,20 +32,19 @@ contract('fa2_wl', _accounts => {
 
     describe('update operators', () => {
         describe('add operator', () => {
-            // FIXME: Swap owner and operator, add expectThrows and fix error message
             it('should not be allowed to add an operator for an address where the transaction is not originating', async () => {
-                const tokenOwner = alice.pkh;
-                const tokenOperator = bob.pkh;
-                try {
-                    await fa2_wl_instance.update_operators([{
+                const tokenOwner = bob.pkh;
+                const tokenOperator = alice.pkh;
+                await expectThrow(fa2_wl_instance.update_operators(
+                    [
+                        {
                         'add_operator': {
                             owner: tokenOwner,
                             operator: tokenOperator
+                            }
                         }
-                    }]);
-                } catch (error) {
-                    assert.equal(error.message, constants.contractErrors.notOperator);
-                }
+                    ]
+                ), constants.contractErrors.approveOnBehalfOfOthers);
             });
 
             it('should be able to add an operator', async () => {
