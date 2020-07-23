@@ -10,7 +10,7 @@ const constants = require('./../helpers/constants.js');
  * make sure to replace the keys for alice/bob accordingly.
  */
 const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
-const { addWhitelisters, addWhitelisteds, removeWhitelisters, removeWhitelisteds} = require('./util.js');
+const { addWhitelisters, addWhitelisteds, removeWhitelisters, removeWhitelisteds, expectThrow } = require('./util.js');
 
 
 contract('fa2_wl', _accounts => {
@@ -192,14 +192,7 @@ contract('fa2_wl', _accounts => {
             expect(accountDavid.balance.isEqualTo(new BigNumber(0))).to.be.true;
 
             // Disallow another transaction since David's balance is now 0
-            var ranToCompletion = false;
-            try {
-                await fa2_wl_instance.transfer(transferParam);
-            } catch (e) {
-                assert.equal(e.message, constants.contractErrors.insufficientBalance);
-                ranToCompletion = true;
-            }
-            assert.equal(ranToCompletion, true);
+            await expectThrow(fa2_wl_instance.transfer(transferParam), constants.contractErrors.insufficientBalance);
 
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
@@ -221,14 +214,7 @@ contract('fa2_wl', _accounts => {
                 }
             ];
 
-            var ranToCompletion = false;
-            try {
-                await fa2_wl_instance.transfer(transferParam);
-            } catch (e) {
-                assert.equal(e.message, constants.contractErrors.insufficientBalance);
-                ranToCompletion = true;
-            }
-            assert.equal(ranToCompletion, true);
+            await expectThrow(fa2_wl_instance.transfer(transferParam), constants.contractErrors.insufficientBalance);
 
             // Change amount and verify that it works
             transferParam[0].amount = 1;
