@@ -655,8 +655,6 @@ contract('fa2_wl', accounts => {
 
             expect((await storage.ledger.get(alice.pkh)).balance.isEqualTo(aliceAccountStart.balance)).to.be.true;
             expect((await storage.ledger.get(bob.pkh)).balance.isEqualTo(bobAccountStart.balance)).to.be.true;
-            // storage.ledger.get(alice.pkh).then(acc => expect(acc.balance.isEqualTo(aliceAccountStart.balance)).to.be.true);
-            // storage.ledger.get(bob.pkh).then(acc => expect(acc.balance.isEqualTo(bobAccountStart.balance)).to.be.true);
 
             // Whitelist sender but not receiver, verify that call fails with message FA2_RECEIVER_NOT_WHITELISTED
             await addWhitelisteds([alice.pkh]);
