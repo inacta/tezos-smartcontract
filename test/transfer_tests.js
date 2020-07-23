@@ -10,33 +10,13 @@ const constants = require('./../helpers/constants.js');
  * make sure to replace the keys for alice/bob accordingly.
  */
 const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
+const { addWhitelisters, addWhitelisteds, removeWhitelisters, removeWhitelisteds} = require('./util.js');
 
 
 contract('fa2_wl', _accounts => {
     let storage;
-    let wrapper_storage;
     let fa2_wl_instance;
     let fa2_wl_wrapper_instance;
-
-    async function addWhitelisters(new_whitelister_addresses) {
-        const whitelisterParam = new_whitelister_addresses.map(function (x) { return { 'add_whitelister': x } });
-        await fa2_wl_instance.update_whitelisters(whitelisterParam);
-    }
-
-    async function addWhitelisteds(new_whitelisted_addresses) {
-        const whitelistedParam = new_whitelisted_addresses.map(function (x) { return { 'add_whitelisted': x } });
-        await fa2_wl_instance.update_whitelisteds(whitelistedParam);
-    }
-
-    async function removeWhitelisters(whitelister_addresses) {
-        const whitelisterParam = whitelister_addresses.map(function (x) { return { 'remove_whitelister': x } });
-        await fa2_wl_instance.update_whitelisters(whitelisterParam);
-    }
-
-    async function removeWhitelisteds(whitelisted_addresses) {
-        const whitelistedParam = whitelisted_addresses.map(function (x) { return { 'remove_whitelisted': x } });
-        await fa2_wl_instance.update_whitelisteds(whitelistedParam);
-    }
 
     before(async () => {
         fa2_wl_instance = await fa2_wl.deployed();
@@ -77,8 +57,8 @@ contract('fa2_wl', _accounts => {
 
             // Add Alice and Bob to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
-            await addWhitelisters([alice.pkh]);
-            await addWhitelisteds([alice.pkh, bob.pkh]);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice, bob]));
 
             // Verify that transactions with 0 amount are possible, and that they
             // do not affect balances (part of FA2 spec that this must pass)
@@ -124,16 +104,16 @@ contract('fa2_wl', _accounts => {
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await removeWhitelisteds([alice.pkh, bob.pkh]);
-            await removeWhitelisters([alice.pkh]);
+            await fa2_wl_instance.update_whitelisteds(removeWhitelisteds([alice, bob]));
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice]));
         });
 
         it(`should not allow transfers from an address that did not sign the transaction and that has not been made operator`, async () => {
 
             // Add Alice and Bob to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
-            await addWhitelisters([alice.pkh]);
-            await addWhitelisteds([alice.pkh, bob.pkh]);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice, bob]));
 
             const tsfAmount = 5;
             const transferParam = [
@@ -177,16 +157,16 @@ contract('fa2_wl', _accounts => {
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await removeWhitelisteds([alice.pkh, bob.pkh]);
-            await removeWhitelisters([alice.pkh]);
+            await fa2_wl_instance.update_whitelisteds(removeWhitelisteds([alice, bob]));
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice]));
         });
 
         it("should allow an address in the allowances list to withdraw from an account", async () => {
 
             // Add Alice, Bob and David to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
-            await addWhitelisters([alice.pkh]);
-            await addWhitelisteds([alice.pkh, bob.pkh, david.pkh]);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice, bob, david]));
 
             // Verify that 1 can be withdrawn as this is David's balance
             var accountDavid = await storage.ledger.get(david.pkh);
@@ -224,13 +204,13 @@ contract('fa2_wl', _accounts => {
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await removeWhitelisteds([alice.pkh, bob.pkh, david.pkh]);
-            await removeWhitelisters([alice.pkh]);
+            await fa2_wl_instance.update_whitelisteds(removeWhitelisteds([alice, bob, david]));
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice]));
         })
 
         it(`should not transfer tokens from Alice to Bob when Alice's balance is insufficient`, async () => {
-            await addWhitelisters([alice.pkh]);
-            await addWhitelisteds([alice.pkh, bob.pkh]);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice, bob]));
 
             const transferParam = [
                 {
@@ -260,8 +240,8 @@ contract('fa2_wl', _accounts => {
             expect(accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance.minus(1))).to.be.true;
             expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance.plus(1))).to.be.true;
 
-            await removeWhitelisteds([alice.pkh, bob.pkh]);
-            await removeWhitelisters([alice.pkh]);
+            await fa2_wl_instance.update_whitelisteds(removeWhitelisteds([alice, bob]));
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice]));
         });
     });
 });
