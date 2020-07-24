@@ -57,7 +57,7 @@ contract('fa2_wl', (_accounts) => {
             });
         });
 
-        it('should not store any balance for Charlie', async () => {
+        it.skip('should not store any balance for Charlie', async () => {
             let accountCharlie = await storage.ledger.get(charlie.pkh);
             assert.equal(accountCharlie, undefined);
         });
