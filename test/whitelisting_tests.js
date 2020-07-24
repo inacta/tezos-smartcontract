@@ -48,49 +48,28 @@ contract('fa2_wl', _accounts => {
             assert.equal(storage.whitelisters.length, 0, 'initial whitelisters list must be empty');
             assert.equal(storage.whitelisteds.length, 0, 'initial whitelisteds list must be empty');
 
-            var whitelistedParam = [
-                {
-                    'add_whitelisted': bob.pkh
-                }
-            ];
-
             // Verify that Alice cannot add Bob as whitelisted since Alice is not whitelister
-            await expectThrow(fa2_wl_instance.update_whitelisteds(whitelistedParam), constants.contractErrors.onlyWlrCanAddWld);
+            await expectThrow(fa2_wl_instance.update_whitelisteds(addWhitelisteds([bob])), constants.contractErrors.onlyWlrCanAddWld);
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisters.length, 0, 'whitelisters list must be empty since call to add failed');
             assert.equal(storage.whitelisteds.length, 0, 'whitelisteds list must be empty since call to add failed');
 
             // Add Alice as Whitelister and verify that she can now add Bob as whitelisted
-            var whitelisterParam = [
-                {
-                    'add_whitelister': alice.pkh
-                }
-            ];
-            await fa2_wl_instance.update_whitelisters(whitelisterParam);
-            await fa2_wl_instance.update_whitelisteds(whitelistedParam);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([bob]));
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisteds.length, 1, 'whitelisted list must now have one element');
             assert.equal(storage.whitelisters.length, 1, 'whitelister list must now have one element');
             assert.equal(storage.whitelisteds[0], bob.pkh, 'Bob must be added as whitelisted');
 
             // Verify that whitelisteds can be removed again
-            whitelistedParam = [
-                {
-                    'remove_whitelisted': bob.pkh
-                }
-            ];
-            await fa2_wl_instance.update_whitelisteds(whitelistedParam);
+            await fa2_wl_instance.update_whitelisteds(removeWhitelisteds([bob]));
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisteds.length, 0, 'whitelisted list must now be empty again');
             assert.equal(storage.whitelisters.length, 1, 'whitelister list must still have one element');
 
             // Remove whitelister again to restore state, as it keeps interfering with later tests
-            whitelisterParam = [
-                {
-                    'remove_whitelister': alice.pkh
-                }
-            ];
-            await fa2_wl_instance.update_whitelisters(whitelisterParam);
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice]));
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisteds.length, 0, 'whitelisted list must still be empty');
             assert.equal(storage.whitelisters.length, 0, 'whitelister list must now be empty');
@@ -103,56 +82,27 @@ contract('fa2_wl', _accounts => {
             assert.equal(storage.whitelisters.length, 0, 'initial whitelisters list must be empty');
 
             // Add Bob as whitelister and verify that this works
-            var whitelisterParam = [
-                {
-                    'add_whitelister': bob.pkh
-                }
-            ];
-            await fa2_wl_instance.update_whitelisters(whitelisterParam);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([bob]));
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisters.length, 1);
             assert.equal(storage.whitelisters[0], bob.pkh);
 
             // Add self and bob as whitelister in one call and verify that this works
-            var whitelisterParam = [
-                {
-                    'add_whitelister': bob.pkh
-                },
-                {
-                    'add_whitelister': alice.pkh
-                }
-            ];
-            await fa2_wl_instance.update_whitelisters(whitelisterParam);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice, bob]));
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisters.length, 2);
             expect(storage.whitelisters.includes(bob.pkh)).to.be.true;
             expect(storage.whitelisters.includes(alice.pkh)).to.be.true;
 
             // Add Bob and Alice again and verify that nothing changes
-            var whitelisterParam = [
-                {
-                    'add_whitelister': bob.pkh
-                },
-                {
-                    'add_whitelister': alice.pkh
-                }
-            ];
-            await fa2_wl_instance.update_whitelisters(whitelisterParam);
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice, bob]));
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisters.length, 2);
             expect(storage.whitelisters.includes(bob.pkh)).to.be.true;
             expect(storage.whitelisters.includes(alice.pkh)).to.be.true;
 
             // Remove Alice and Bob and verify that this works
-            var whitelisterParam = [
-                {
-                    'remove_whitelister': bob.pkh
-                },
-                {
-                    'remove_whitelister': alice.pkh
-                }
-            ];
-            await fa2_wl_instance.update_whitelisters(whitelisterParam);
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice, bob]));
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisters.length, 0);
         })
