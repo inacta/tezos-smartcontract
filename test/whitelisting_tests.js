@@ -170,8 +170,8 @@ contract('fa2_wl', (_accounts) => {
             );
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisters.length, 2);
-            expect(storage.whitelisters.includes(bob.pkh)).to.be.true;
-            expect(storage.whitelisters.includes(alice.pkh)).to.be.true;
+            assert(storage.whitelisters.includes(bob.pkh));
+            assert(storage.whitelisters.includes(alice.pkh));
 
             // Add Bob and Alice again and verify that nothing changes
             await fa2_wl_instance.update_whitelisters(
@@ -179,8 +179,8 @@ contract('fa2_wl', (_accounts) => {
             );
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelisters.length, 2);
-            expect(storage.whitelisters.includes(bob.pkh)).to.be.true;
-            expect(storage.whitelisters.includes(alice.pkh)).to.be.true;
+            assert(storage.whitelisters.includes(bob.pkh));
+            assert(storage.whitelisters.includes(alice.pkh));
 
             // Remove Alice and Bob and verify that this works
             await fa2_wl_instance.update_whitelisters(
@@ -233,16 +233,16 @@ contract('fa2_wl', (_accounts) => {
                 constants.contractErrors.senderNotWhitelisted
             );
 
-            expect(
+            assert(
                 (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
                     aliceAccountStart.balance
                 )
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
                     bobAccountStart.balance
                 )
-            ).to.be.true;
+            );
 
             // Whitelist sender but not receiver, verify that call fails with message FA2_RECEIVER_NOT_WHITELISTED
             await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice]));
@@ -251,16 +251,16 @@ contract('fa2_wl', (_accounts) => {
                 constants.contractErrors.receiverNotWhitelisted
             );
 
-            expect(
+            assert(
                 (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
                     aliceAccountStart.balance
                 )
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
                     bobAccountStart.balance
                 )
-            ).to.be.true;
+            );
 
             // Whitelist receiver and remove whitelisting from sender. Verify that call fails with FA2_SENDER_NOT_WHITELISTED
             await fa2_wl_instance.update_whitelisteds(
@@ -272,30 +272,30 @@ contract('fa2_wl', (_accounts) => {
                 constants.contractErrors.senderNotWhitelisted
             );
 
-            expect(
+            assert(
                 (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
                     aliceAccountStart.balance
                 )
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
                     bobAccountStart.balance
                 )
-            ).to.be.true;
+            );
 
             // Whitelist sender *and* receiver. Verify that the call succeeds and that the balance changes
             await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice]));
             await fa2_wl_instance.transfer(transferParamSingle);
-            expect(
+            assert(
                 (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
                     aliceAccountStart.balance.minus(1)
                 )
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
                     bobAccountStart.balance.plus(1)
                 )
-            ).to.be.true;
+            );
 
             // Verify that all transfers fail if one of the elements in the parameter to the function call fails
             // Here, Charlie is not whitelisted, but Alice and Bob are. Since one transfer call fails, all must fail
@@ -303,16 +303,16 @@ contract('fa2_wl', (_accounts) => {
                 fa2_wl_instance.transfer(transferParamMultiple),
                 constants.contractErrors.receiverNotWhitelisted
             );
-            expect(
+            assert(
                 (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
                     aliceAccountStart.balance.minus(1)
                 )
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
                     bobAccountStart.balance.plus(1)
                 )
-            ).to.be.true;
+            );
 
             // Remove both whitelisters and whitelisteds to restore state
             await fa2_wl_instance.update_whitelisteds(
@@ -347,8 +347,8 @@ contract('fa2_wl', (_accounts) => {
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.whitelist_admins.length, 2);
             assert.equal(storage.non_revocable_whitelist_admin, alice.pkh);
-            expect(storage.whitelist_admins.includes(bob.pkh)).to.be.true;
-            expect(storage.whitelist_admins.includes(alice.pkh)).to.be.true;
+            assert(storage.whitelist_admins.includes(bob.pkh));
+            assert(storage.whitelist_admins.includes(alice.pkh));
 
             // Verify that Bob can now take the non-revocable role and that alice is *not* removed as a whitelist admin
             // even though she gave up the non-revocable role
@@ -356,8 +356,8 @@ contract('fa2_wl', (_accounts) => {
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.non_revocable_whitelist_admin, bob.pkh);
             assert.equal(storage.whitelist_admins.length, 2);
-            expect(storage.whitelist_admins.includes(bob.pkh)).to.be.true;
-            expect(storage.whitelist_admins.includes(alice.pkh)).to.be.true;
+            assert(storage.whitelist_admins.includes(bob.pkh));
+            assert(storage.whitelist_admins.includes(alice.pkh));
 
             // Ensure that the correct error message is presented when anyone else but the non-revocable WL admin attempts to
             // pass this role on
@@ -369,16 +369,16 @@ contract('fa2_wl', (_accounts) => {
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.non_revocable_whitelist_admin, bob.pkh);
             assert.equal(storage.whitelist_admins.length, 2);
-            expect(storage.whitelist_admins.includes(bob.pkh)).to.be.true;
-            expect(storage.whitelist_admins.includes(alice.pkh)).to.be.true;
+            assert(storage.whitelist_admins.includes(bob.pkh));
+            assert(storage.whitelist_admins.includes(alice.pkh));
 
             // Verify that Alice can now renounce her WL admin role
             await fa2_wl_instance.renounce_wl_admin([['unit']]);
             storage = await fa2_wl_instance.storage();
             assert.equal(storage.non_revocable_whitelist_admin, bob.pkh);
             assert.equal(storage.whitelist_admins.length, 1);
-            expect(storage.whitelist_admins.includes(bob.pkh)).to.be.true;
-            expect(storage.whitelist_admins.includes(alice.pkh)).to.be.false;
+            assert(storage.whitelist_admins.includes(bob.pkh));
+            assert(!storage.whitelist_admins.includes(alice.pkh));
 
             // Unfortunately, we have to redeploy the contract here to restore state
             // Otherwise Bob is WL admin and Alice is not and we need Alice as WL admin

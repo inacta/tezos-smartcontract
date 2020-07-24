@@ -86,11 +86,10 @@ contract('fa2_wl', (_accounts) => {
             await fa2_wl_instance.transfer(transferParam);
             var accountBobAfter = await storage.ledger.get(bob.pkh);
             var accountAliceAfter = await storage.ledger.get(alice.pkh);
-            expect(
+            assert(
                 accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance)
-            ).to.be.true;
-            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance))
-                .to.be.true;
+            );
+            assert(accountBobAfter.balance.isEqualTo(accountBobBefore.balance));
 
             // Verify that Alice can send to herself. It is a part of the FA2 spec
             // that this must pass. Verify this for both 0 amount and 1 amount
@@ -98,38 +97,36 @@ contract('fa2_wl', (_accounts) => {
             await fa2_wl_instance.transfer(transferParam);
             accountBobAfter = await storage.ledger.get(bob.pkh);
             accountAliceAfter = await storage.ledger.get(alice.pkh);
-            expect(
+            assert(
                 accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance)
-            ).to.be.true;
-            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance))
-                .to.be.true;
+            );
+            assert(accountBobAfter.balance.isEqualTo(accountBobBefore.balance));
 
             const transferAmount = 1;
             transferParam[0].amount = transferAmount;
             await fa2_wl_instance.transfer(transferParam);
             accountBobAfter = await storage.ledger.get(bob.pkh);
             accountAliceAfter = await storage.ledger.get(alice.pkh);
-            expect(
+            assert(
                 accountAliceAfter.balance.isEqualTo(accountAliceBefore.balance)
-            ).to.be.true;
-            expect(accountBobAfter.balance.isEqualTo(accountBobBefore.balance))
-                .to.be.true;
+            );
+            assert(accountBobAfter.balance.isEqualTo(accountBobBefore.balance));
 
             // Verify that 1 token can be transferred from Alice to Bob
             transferParam[0].to_ = bob.pkh;
             await fa2_wl_instance.transfer(transferParam);
             var accountBobAfter = await storage.ledger.get(bob.pkh);
             var accountAliceAfter = await storage.ledger.get(alice.pkh);
-            expect(
+            assert(
                 accountAliceAfter.balance.isEqualTo(
                     accountAliceBefore.balance.minus(transferAmount)
                 )
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 accountBobAfter.balance.isEqualTo(
                     accountBobBefore.balance.plus(transferAmount)
                 )
-            ).to.be.true;
+            );
 
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
@@ -173,11 +170,11 @@ contract('fa2_wl', (_accounts) => {
 
             // Ensure that Bob has the necessary balance making the transfer to ensure that we are testing
             // the right thing
-            expect(
+            assert(
                 accountBobBefore.balance.isGreaterThanOrEqualTo(
                     new BigNumber(tsfAmount)
                 )
-            ).to.be.true;
+            );
 
             expectThrow(
                 fa2_wl_instance.transfer(transferParam),
@@ -185,11 +182,10 @@ contract('fa2_wl', (_accounts) => {
             );
             accountBobAfter = await storage.ledger.get(bob.pkh);
             accountAliceAfter = await storage.ledger.get(alice.pkh);
-            expect(accountBobBefore.balance.isEqualTo(accountBobAfter.balance))
-                .to.be.true;
-            expect(
+            assert(accountBobBefore.balance.isEqualTo(accountBobAfter.balance));
+            assert(
                 accountAliceBefore.balance.isEqualTo(accountAliceAfter.balance)
-            ).to.be.true;
+            );
 
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
@@ -212,7 +208,7 @@ contract('fa2_wl', (_accounts) => {
 
             // Verify that 1 can be withdrawn as this is David's balance
             var accountDavid = await storage.ledger.get(david.pkh);
-            expect(accountDavid.balance.isEqualTo(new BigNumber(2))).to.be.true;
+            assert(accountDavid.balance.isEqualTo(new BigNumber(2)));
             const transferParam = [
                 {
                     token_id: 0,
@@ -224,14 +220,14 @@ contract('fa2_wl', (_accounts) => {
             ];
             await fa2_wl_instance.transfer(transferParam);
             accountDavid = await storage.ledger.get(david.pkh);
-            expect(accountDavid.balance.isEqualTo(new BigNumber(1))).to.be.true;
+            assert(accountDavid.balance.isEqualTo(new BigNumber(1)));
 
             // Transfer 1 from David to Bob
             accountDavid = await storage.ledger.get(david.pkh);
             transferParam[0].to_ = bob.pkh;
             await fa2_wl_instance.transfer(transferParam);
             accountDavid = await storage.ledger.get(david.pkh);
-            expect(accountDavid.balance.isEqualTo(new BigNumber(0))).to.be.true;
+            assert(accountDavid.balance.isEqualTo(new BigNumber(0)));
 
             // Disallow another transaction since David's balance is now 0
             await expectThrow(
@@ -277,16 +273,16 @@ contract('fa2_wl', (_accounts) => {
             await fa2_wl_instance.transfer(transferParam);
             const accountAliceAfter = await storage.ledger.get(alice.pkh);
             const accountBobAfter = await storage.ledger.get(bob.pkh);
-            expect(
+            assert(
                 accountAliceAfter.balance.isEqualTo(
                     accountAliceBefore.balance.minus(1)
                 )
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 accountBobAfter.balance.isEqualTo(
                     accountBobBefore.balance.plus(1)
                 )
-            ).to.be.true;
+            );
 
             await fa2_wl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob])

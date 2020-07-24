@@ -116,16 +116,16 @@ contract('fa2_wl', (_accounts) => {
                 2,
                 'Can request multiple balances'
             );
-            expect(
+            assert(
                 wrapper_storage.balance_responses
                     .map((x) => x.request.owner)
                     .includes(alice.pkh)
-            ).to.be.true;
-            expect(
+            );
+            assert(
                 wrapper_storage.balance_responses
                     .map((x) => x.request.owner)
                     .includes(bob.pkh)
-            ).to.be.true;
+            );
         });
     });
 });
