@@ -10,6 +10,14 @@ const constants = require('./../helpers/constants.js');
 const { alice, bob} = require('./../scripts/sandbox/accounts');
 const { expectThrow } = require('./util.js');
 
+function addOperators(tuple_list) {
+    return tuple_list.map(function (x) { return { 'add_operator': { owner: x[0], operator: x[1] } } });
+}
+
+function removeOperators(tuple_list) {
+    return tuple_list.map(function (x) { return { 'remove_operator': { owner: x[0], operator: x[1] } } });
+}
+
 
 contract('fa2_wl', _accounts => {
     let storage;
@@ -35,16 +43,7 @@ contract('fa2_wl', _accounts => {
             it('should not be allowed to add an operator for an address where the transaction is not originating', async () => {
                 const tokenOwner = bob.pkh;
                 const tokenOperator = alice.pkh;
-                await expectThrow(fa2_wl_instance.update_operators(
-                    [
-                        {
-                        'add_operator': {
-                            owner: tokenOwner,
-                            operator: tokenOperator
-                            }
-                        }
-                    ]
-                ), constants.contractErrors.approveOnBehalfOfOthers);
+                await expectThrow(fa2_wl_instance.update_operators(addOperators([[tokenOwner, tokenOperator]]), constants.contractErrors.approveOnBehalfOfOthers));
             });
 
             it('should be able to add an operator', async () => {
@@ -53,12 +52,7 @@ contract('fa2_wl', _accounts => {
                 const accountBefore = await storage.ledger.get(tokenOwner);
                 assert.equal(true, Array.isArray(accountBefore.allowances)); // I couldn't find an `assert.true`
 
-                await fa2_wl_instance.update_operators([{
-                    'add_operator': {
-                        owner: tokenOwner,
-                        operator: tokenOperator
-                    }
-                }]);
+                await fa2_wl_instance.update_operators(addOperators([[tokenOwner, tokenOperator]]));
                 const accountAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(1, accountAfter.allowances.length);
                 assert.equal(true, Array.isArray(accountAfter.allowances)); // I couldn't find an `assert.true`
@@ -68,18 +62,10 @@ contract('fa2_wl', _accounts => {
 
             it('adding an operator should be an idempotent operation', async () => {
                 const tokenOwner = alice.pkh;
-
                 const tokenOperator = bob.pkh;
-                const updateParam = [{
-                    'add_operator': {
-                        owner: tokenOwner,
-                        operator: tokenOperator
-                    }
-                }];
-
                 // Call update_operators twice and ensure that only one entry has been made
-                const prom = fa2_wl_instance.update_operators(updateParam);
-                await fa2_wl_instance.update_operators(updateParam);
+                const prom = fa2_wl_instance.update_operators(addOperators([[tokenOwner, tokenOperator]]));
+                await fa2_wl_instance.update_operators(addOperators([[tokenOwner, tokenOperator]]));
                 prom.then(() => {
                     storage.ledger.get(tokenOwner).then(accountAfter => {
                         assert.equal(1, accountAfter.allowances.length);
@@ -88,7 +74,7 @@ contract('fa2_wl', _accounts => {
                 });
 
                 // Call it again and ensure that nothing has changed
-                await fa2_wl_instance.update_operators(updateParam);
+                await fa2_wl_instance.update_operators(addOperators([[tokenOwner, tokenOperator]]));
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(1, accountAfter.allowances.length);
                     assert.equal(tokenOperator, accountAfter.allowances[0]);
@@ -99,49 +85,20 @@ contract('fa2_wl', _accounts => {
                 const tokenOwner = alice.pkh;
                 const tokenOperator0 = bob.pkh;
                 const tokenOperator1 = 'tz1PueLmqFpGmSNboPXvxDs6Th49xKwJfNAQ'; // random address found on Carthage net
-                const addParam = [
-                    {
-                        'add_operator': {
-                            owner: tokenOwner,
-                            operator: tokenOperator0
-                        }
-                    },
-                    {
-                        'add_operator': {
-                            owner: tokenOwner,
-                            operator: tokenOperator1
-                        }
-                    }
-                ];
-                await fa2_wl_instance.update_operators(addParam);
+                await fa2_wl_instance.update_operators(addOperators([[tokenOwner, tokenOperator0], [tokenOwner, tokenOperator1]]));
 
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(2, accountAfter.allowances.length);
                     assert.equal(true, accountAfter.allowances.includes(tokenOperator0));
                     assert.equal(true, accountAfter.allowances.includes(tokenOperator1));
                 });
-
-                const removeParam = [
-                    {
-                        'remove_operator': {
-                            owner: tokenOwner,
-                            operator: tokenOperator0
-                        }
-                    },
-                    {
-                        'remove_operator': {
-                            owner: tokenOwner,
-                            operator: tokenOperator1
-                        }
-                    }
-                ];
-                await fa2_wl_instance.update_operators(removeParam);
+                await fa2_wl_instance.update_operators(removeOperators([[tokenOwner, tokenOperator0], [tokenOwner, tokenOperator1]]));
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(0, accountAfter.allowances.length);
                 });
 
                 // Removing the operators again should be the unit identity operator as remove should be idempotent
-                await fa2_wl_instance.update_operators(removeParam);
+                await fa2_wl_instance.update_operators(removeOperators([[tokenOwner, tokenOperator0], [tokenOwner, tokenOperator1]]));
                 storage.ledger.get(tokenOwner).then(accountAfter => {
                     assert.equal(0, accountAfter.allowances.length);
                 });
@@ -153,29 +110,18 @@ contract('fa2_wl', _accounts => {
                 const tokenOwner = alice.pkh;
 
                 const tokenOperator = bob.pkh;
-                await fa2_wl_instance.update_operators([{
-                    'add_operator': {
-                        owner: tokenOwner,
-                        operator: tokenOperator
-                    }
-                }]);
+                await fa2_wl_instance.update_operators(addOperators([[tokenOwner, tokenOperator]]));
                 const accountMid = await storage.ledger.get(tokenOwner);
                 assert.equal(1, accountMid.allowances.length);
                 assert.equal(true, Array.isArray(accountMid.allowances));
                 assert.equal(tokenOperator, accountMid.allowances[0]);
 
-                const removeParam = [{
-                    'remove_operator': {
-                        owner: tokenOwner,
-                        operator: tokenOperator
-                    }
-                }];
-                await fa2_wl_instance.update_operators(removeParam);
+                await fa2_wl_instance.update_operators(removeOperators([[tokenOwner, tokenOperator]]));
                 const accountAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(0, accountAfter.allowances.length);
 
                 // Removing an operator should be an idempotent operation
-                await fa2_wl_instance.update_operators(removeParam);
+                await fa2_wl_instance.update_operators(removeOperators([[tokenOwner, tokenOperator]]));
                 const accountAfterAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(0, accountAfterAfter.allowances.length);
             });
