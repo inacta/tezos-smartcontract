@@ -57,12 +57,12 @@ contract('fa2_wl', (_accounts) => {
             });
         });
 
-        it(`should not store any balance for Charlie`, async () => {
+        it('should not store any balance for Charlie', async () => {
             let accountCharlie = await storage.ledger.get(charlie.pkh);
             assert.equal(accountCharlie, undefined);
         });
 
-        it(`should transfer 1 token from Alice to Bob`, async () => {
+        it('should transfer 1 token from Alice to Bob', async () => {
             const accountBobBefore = await storage.ledger.get(bob.pkh);
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
 
@@ -142,7 +142,7 @@ contract('fa2_wl', (_accounts) => {
             );
         });
 
-        it(`should not allow transfers from an address that did not sign the transaction and that has not been made operator`, async () => {
+        it('should not allow transfers from an address that did not sign the transaction and that has not been made operator', async () => {
             // Add Alice and Bob to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
@@ -250,7 +250,7 @@ contract('fa2_wl', (_accounts) => {
             );
         });
 
-        it(`should not transfer tokens from Alice to Bob when Alice's balance is insufficient`, async () => {
+        it("should not transfer tokens from Alice to Bob when Alice's balance is insufficient", async () => {
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
             await fa2_wl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob])

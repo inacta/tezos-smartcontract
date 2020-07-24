@@ -53,7 +53,7 @@ contract('fa2_wl', (_accounts) => {
     describe('get token information', () => {
         it('should be able to read token information from storage as specified in FA2/TZIP-12', async () => {
             // I think the type of the key of all big_maps has to be string
-            const asset_info = await storage.token_metadata.get(`0`);
+            const asset_info = await storage.token_metadata.get('0');
             assert.equal(0, asset_info.token_id);
             assert.equal('CVL0', asset_info.symbol);
             assert.equal('Crypto Valley Labs, iteration 0', asset_info.name);
