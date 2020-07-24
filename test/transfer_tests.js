@@ -154,35 +154,31 @@ contract("fa2_wl", (_accounts) => {
       let accountAliceBefore;
       let accountBobAfter;
       let accountAliceAfter;
-      var ranToCompletion = false;
-      try {
-        /**
-         * Transactions in the test suite are signed by a secret/private key
-         * configured in truffle-config.js
-         */
-        accountBobBefore = await storage.ledger.get(bob.pkh);
-        accountAliceBefore = await storage.ledger.get(alice.pkh);
+      /**
+       * Transactions in the test suite are signed by a secret/private key
+       * configured in truffle-config.js
+       */
+      accountBobBefore = await storage.ledger.get(bob.pkh);
+      accountAliceBefore = await storage.ledger.get(alice.pkh);
 
-        // Ensure that Bob has the necessary balance making the transfer to ensure that we are testing
-        // the right thing
-        expect(
-          accountBobBefore.balance.isGreaterThanOrEqualTo(
-            new BigNumber(tsfAmount)
-          )
-        ).to.be.true;
+      // Ensure that Bob has the necessary balance making the transfer to ensure that we are testing
+      // the right thing
+      expect(
+        accountBobBefore.balance.isGreaterThanOrEqualTo(
+          new BigNumber(tsfAmount)
+        )
+      ).to.be.true;
 
-        await fa2_wl_instance.transfer(transferParam);
-      } catch (e) {
-        assert.equal(e.message, constants.contractErrors.notOperator);
-        accountBobAfter = await storage.ledger.get(bob.pkh);
-        accountAliceAfter = await storage.ledger.get(alice.pkh);
-        expect(accountBobBefore.balance.isEqualTo(accountBobAfter.balance)).to
-          .be.true;
-        expect(accountAliceBefore.balance.isEqualTo(accountAliceAfter.balance))
-          .to.be.true;
-        ranToCompletion = true;
-      }
-      assert.equal(ranToCompletion, true);
+      expectThrow(
+        fa2_wl_instance.transfer(transferParam),
+        constants.contractErrors.notOperator
+      );
+      accountBobAfter = await storage.ledger.get(bob.pkh);
+      accountAliceAfter = await storage.ledger.get(alice.pkh);
+      expect(accountBobBefore.balance.isEqualTo(accountBobAfter.balance)).to.be
+        .true;
+      expect(accountAliceBefore.balance.isEqualTo(accountAliceAfter.balance)).to
+        .be.true;
 
       // Remove Alice and Bob from whitelisted. This must be done in the opposite
       // order of how they were added
