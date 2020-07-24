@@ -61,14 +61,14 @@ contract('fa2_wl', (_accounts) => {
                 const tokenOwner = alice.pkh;
                 const tokenOperator = bob.pkh;
                 const accountBefore = await storage.ledger.get(tokenOwner);
-                assert.equal(true, Array.isArray(accountBefore.allowances)); // I couldn't find an `assert.true`
+                assert.equal(0, accountBefore.allowances.length);
 
                 await fa2_wl_instance.update_operators(
                     addOperators([[tokenOwner, tokenOperator]])
                 );
                 const accountAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(1, accountAfter.allowances.length);
-                assert.equal(true, Array.isArray(accountAfter.allowances)); // I couldn't find an `assert.true`
+                assert.equal(bob.pkh, accountAfter.allowances[0]);
 
                 // TODO: Verify that bob can now spend from Alice's account
             });
