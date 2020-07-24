@@ -57,20 +57,43 @@ contract('fa2_wl', (_accounts) => {
                 );
             });
 
-            it('should be able to add an operator', async () => {
-                const tokenOwner = alice.pkh;
-                const tokenOperator = bob.pkh;
+            it.skip('should be able to add an operator', async () => {
+                const tokenOwner = bob.pkh;
+                const tokenOperator = alice.pkh;
                 const accountBefore = await storage.ledger.get(tokenOwner);
                 assert.equal(0, accountBefore.allowances.length);
 
                 await fa2_wl_instance.update_operators(
-                    addOperators([[tokenOwner, tokenOperator]])
+                    addOperators([[tokenOwner, tokenOperator]]),
+                    { from: bob }
                 );
                 const accountAfter = await storage.ledger.get(tokenOwner);
                 assert.equal(1, accountAfter.allowances.length);
-                assert.equal(bob.pkh, accountAfter.allowances[0]);
+                assert.equal(alice.pkh, accountAfter.allowances[0]);
 
-                // TODO: Verify that bob can now spend from Alice's account
+                var transferParam = [
+                    {
+                        token_id: 0,
+                        amount: 1,
+                        from_: bob.pkh,
+                        to_: alice.pkh,
+                    },
+                ];
+                await fa2_wl_instance.transfer(transferParam);
+
+                assert.equal(await storage.ledger.get(alice.pkh).balance, 11);
+                assert.equal(await storage.ledger.get(bob.pkh).balance, 9);
+
+                // Undo for future tests
+                transferParam = [
+                    {
+                        token_id: 0,
+                        amount: 1,
+                        from_: alice.pkh,
+                        to_: bob.pkh,
+                    },
+                ];
+                await fa2_wl_instance.transfer(transferParam);
             });
 
             it('adding an operator should be an idempotent operation', async () => {
