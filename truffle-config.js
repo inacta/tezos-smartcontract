@@ -1,5 +1,5 @@
 const { mnemonic, secret, password, email } = require("./faucet.json");
-const { alice } = require('./scripts/sandbox/accounts');
+const { alice } = require("./scripts/sandbox/accounts");
 module.exports = {
   // see <http://truffleframework.com/docs/advanced/configuration>
   // for more details on how to specify configuration options!
@@ -10,7 +10,7 @@ module.exports = {
       port: 8732,
       network_id: "*",
       secretKey: alice.sk,
-      type: "tezos"
+      type: "tezos",
     },
     babylonnet: {
       host: "https://babylonnet.tezos.org.ua",
@@ -19,7 +19,7 @@ module.exports = {
       mnemonic,
       password,
       email,
-      type: "tezos"
+      type: "tezos",
     },
     carthagenet: {
       host: "https://testnet-tezos.giganode.io",
@@ -28,8 +28,7 @@ module.exports = {
       mnemonic,
       password,
       email,
-      type: "tezos"
-    }
-  }
+      type: "tezos",
+    },
+  },
 };
-
