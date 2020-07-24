@@ -29,6 +29,19 @@ contract('fa2_wl', _accounts => {
         wrapper_storage = await fa2_wl_wrapper_instance.storage();
     });
 
+    describe('whitelisters and whitelisteds', () => {
+        it('should not throw when removing non-existent ones', async () => {
+            storage = await fa2_wl_instance.storage();
+            assert.equal(storage.whitelisters.length, 0, 'initial whitelisters list must be empty');
+            assert.equal(storage.whitelisteds.length, 0, 'initial whitelisteds list must be empty');
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice]));
+            // This is necessary, so alice can update whitelisteds
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(removeWhitelisteds([alice]));
+            await fa2_wl_instance.update_whitelisters(removeWhitelisters([alice]));
+        })
+    });
+
     describe('whitelisteds', () => {
         it('whitelisters should be able to add whitelisted', async () => {
             storage = await fa2_wl_instance.storage();
