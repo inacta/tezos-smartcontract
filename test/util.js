@@ -1,17 +1,21 @@
-function addWhitelisters(new_whitelister_addresses) {
-    return new_whitelister_addresses.map(function (x) { return { 'add_whitelister': x.pkh } });
+function addWhitelisters(addresses) {
+    return args(addresses, 'add_whitelister');
 }
 
-function addWhitelisteds(new_whitelisted_addresses) {
-    return new_whitelisted_addresses.map(function (x) { return { 'add_whitelisted': x.pkh } });
+function addWhitelisteds(addresses) {
+    return args(addresses, 'add_whitelisted');
 }
 
-function removeWhitelisters(whitelister_addresses) {
-    return whitelister_addresses.map(function (x) { return { 'remove_whitelister': x.pkh } });
+function removeWhitelisters(addresses) {
+    return args(addresses, 'remove_whitelister');
 }
 
-function removeWhitelisteds(whitelisted_addresses) {
-    return whitelisted_addresses.map(function (x) { return { 'remove_whitelisted': x.pkh } });
+function removeWhitelisteds(addresses) {
+    return args(addresses, 'remove_whitelisted');
+}
+
+function args(addresses, field) {
+    return addresses.map(function (x) { return { [field]: x.pkh } });
 }
 
 async function expectThrow (promise, message) {
