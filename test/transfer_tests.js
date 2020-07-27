@@ -57,11 +57,6 @@ contract('fa2_wl', (_accounts) => {
             });
         });
 
-        it.skip('should not store any balance for Charlie', async () => {
-            let accountCharlie = await storage.ledger.get(charlie.pkh);
-            assert.equal(accountCharlie, undefined);
-        });
-
         it('should transfer 1 token from Alice to Bob', async () => {
             const accountBobBefore = await storage.ledger.get(bob.pkh);
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
