@@ -194,6 +194,8 @@ contract('fa2_wl', (_accounts) => {
         });
 
         it('should allow an address in the allowances list to withdraw from an account', async () => {
+            // This works since Alice is part of David's `allowances` list in `initial_storage`
+
             // Add Alice, Bob and David to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
