@@ -243,6 +243,99 @@ contract('fa2_wl', (_accounts) => {
             );
         });
 
+        it('multi-transfer should succeed if balance is sufficient or else fail completely', async () => {
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(
+                addWhitelisteds([alice, bob, david])
+            );
+            let accountBobBefore = await storage.ledger.get(bob.pkh);
+            let accountAliceBefore = await storage.ledger.get(alice.pkh);
+            let transferParam = [
+                {
+                    token_id: 0,
+                    amount: 1,
+                    from_: alice.pkh,
+                    to_: bob.pkh,
+                },
+                {
+                    token_id: 0,
+                    amount: 2,
+                    from_: alice.pkh,
+                    to_: bob.pkh,
+                },
+            ];
+            await fa2_wl_instance.transfer(transferParam);
+            let accountBobAfter = await storage.ledger.get(bob.pkh);
+            let accountAliceAfter = await storage.ledger.get(alice.pkh);
+            assert(
+                accountAliceAfter.balance.isEqualTo(
+                    accountAliceBefore.balance.minus(3)
+                )
+            );
+            assert(
+                accountBobAfter.balance.isEqualTo(
+                    accountBobBefore.balance.plus(3)
+                )
+            );
+            transferParam = [
+                {
+                    token_id: 0,
+                    amount: 1,
+                    from_: alice.pkh,
+                    to_: bob.pkh,
+                },
+                {
+                    token_id: 0,
+                    amount: 20,
+                    from_: alice.pkh,
+                    to_: bob.pkh,
+                },
+            ];
+            await expectThrow(
+                fa2_wl_instance.transfer(transferParam),
+                constants.contractErrors.insufficientBalance
+            );
+            // Check both orders
+            transferParam = [
+                {
+                    token_id: 0,
+                    amount: 20,
+                    from_: alice.pkh,
+                    to_: bob.pkh,
+                },
+                {
+                    token_id: 0,
+                    amount: 1,
+                    from_: alice.pkh,
+                    to_: bob.pkh,
+                },
+            ];
+            await expectThrow(
+                fa2_wl_instance.transfer(transferParam),
+                constants.contractErrors.insufficientBalance
+            );
+            let accountAliceAfterFail = await storage.ledger.get(alice.pkh);
+            let accountBobAfterFail = await storage.ledger.get(bob.pkh);
+            assert(
+                accountAliceAfter.balance.isEqualTo(
+                    accountAliceAfterFail.balance
+                )
+            );
+            assert(
+                accountBobAfter.balance.isEqualTo(accountBobAfterFail.balance)
+            );
+
+            // Remove Alice and Bob from whitelisted. This must be done in the opposite
+            // order of how they were added
+            // Done to keep state of test runtime unaffected from this test
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice, bob, david])
+            );
+            await fa2_wl_instance.update_whitelisters(
+                removeWhitelisters([alice])
+            );
+        });
+
         it("should not transfer tokens from Alice to Bob when Alice's balance is insufficient", async () => {
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
             await fa2_wl_instance.update_whitelisteds(
