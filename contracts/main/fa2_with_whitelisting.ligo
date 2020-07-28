@@ -270,14 +270,7 @@ begin
             if sender_balance < transfer.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
 
             (* Update the ledger accordingly *)
-            var sender_account: account := record
-                balance = 0n;
-                allowances = (set []: set(address));
-            end;
-            case storage.ledger[transfer.from_] of
-                Some (account) -> sender_account := account
-                | None -> failwith("No sender balance")
-            end;
+            var sender_account := get_account(transfer.from_, storage);
             sender_account.balance := abs(sender_account.balance - transfer.amount);
             storage.ledger[transfer.from_] := sender_account;
             var recipientAccount : account := get_account(transfer.to_, storage);
