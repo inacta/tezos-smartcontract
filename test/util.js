@@ -20,6 +20,17 @@ function args(addresses, field) {
     });
 }
 
+function transferParams(transfers) {
+    return transfers.map((fromTransfers) => ({
+        from_: fromTransfers.from.pkh,
+        txs: fromTransfers.to.map((tuple) => ({
+            token_id: 0,
+            to_: tuple[0].pkh,
+            amount: tuple[1],
+        })),
+    }));
+}
+
 async function expectThrow(promise, message) {
     try {
         await promise;
@@ -40,5 +51,6 @@ module.exports = {
     addWhitelisteds,
     removeWhitelisters,
     removeWhitelisteds,
+    transferParams,
     expectThrow,
 };

@@ -31,15 +31,22 @@ type token_id is nat;
 
 
 (***** Transfer types *****)
-type transfer is record
+type transfer_to is record
     token_id : token_id;
     amount : token_balance;
-    from_ : token_owner;
     to_ : token_owner;
 end;
 
-type transfer_param is list(transfer);
+type transfer_to_michelson is michelson_pair_right_comb(transfer_to);
 
+type transfer_from is record
+    from_ : token_owner;
+    txs: list(transfer_to_michelson);
+end;
+
+type transfer_from_michelson is michelson_pair_right_comb(transfer_from);
+
+type transfer_param is list(transfer_from_michelson);
 
 (***** Balance_of types *****)
 type balance_of_request is record
@@ -257,28 +264,36 @@ end with Unit;
 // TODO: This is very ineffective in terms of gas, big optimizations should be possible
 function transfer (const transfer_param : transfer_param; var storage : storage) : (list(operation) * storage) is
 begin
-    function transfer_iterator (const storage : storage; const transfer : transfer) : storage
+    function inner_transfer_iterator (const storage_from_tuple: storage * token_owner; const transfer_to_michelson : transfer_to_michelson) : storage * token_owner
         is begin
+            const storage : storage = storage_from_tuple.0;
+            const from_ : token_owner = storage_from_tuple.1;
             (* Verify that transaction originator is allowed to spend from this address *)
-            const unit_value: unit = is_allowed(transfer.from_, storage);
+            const unit_value: unit = is_allowed(from_, storage);
 
-            if transfer.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
-            if not (storage.whitelisteds contains transfer.from_) then failwith ("FA2_SENDER_NOT_WHITELISTED") else skip;
-            if not (storage.whitelisteds contains transfer.to_) then failwith ("FA2_RECEIVER_NOT_WHITELISTED") else skip;
+            const transfer_to : transfer_to = Layout.convert_from_right_comb(transfer_to_michelson);
+            if transfer_to.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
+            if not (storage.whitelisteds contains from_) then failwith ("FA2_SENDER_NOT_WHITELISTED") else skip;
+            if not (storage.whitelisteds contains transfer_to.to_) then failwith ("FA2_RECEIVER_NOT_WHITELISTED") else skip;
 
-            const sender_balance: nat = get_token_balance(transfer.token_id, transfer.from_, storage);
-            if sender_balance < transfer.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
+            const sender_balance: nat = get_token_balance(transfer_to.token_id, from_, storage);
+            if sender_balance < transfer_to.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
 
             (* Update the ledger accordingly *)
-            var sender_account := get_account(transfer.from_, storage);
-            sender_account.balance := abs(sender_account.balance - transfer.amount);
-            storage.ledger[transfer.from_] := sender_account;
-            var recipient_account : account := get_account(transfer.to_, storage);
-            recipient_account.balance := recipient_account.balance + transfer.amount;
-            storage.ledger[transfer.to_] := recipient_account;
-        end with storage;
+            var sender_account := get_account(from_, storage);
+            sender_account.balance := abs(sender_account.balance - transfer_to.amount);
+            storage.ledger[from_] := sender_account;
+            var recipient_account : account := get_account(transfer_to.to_, storage);
+            recipient_account.balance := recipient_account.balance + transfer_to.amount;
+            storage.ledger[transfer_to.to_] := recipient_account;
+        end with (storage, from_);
 
-    storage := list_fold(transfer_iterator, transfer_param, storage);
+    function outer_transfer_iterator (var storage : storage; const transfer_from_michelson : transfer_from_michelson) : storage
+        is begin
+            const transfer_from : transfer_from = Layout.convert_from_right_comb(transfer_from_michelson);
+            const storage_from_tuple : storage * token_owner = List.fold(inner_transfer_iterator, transfer_from.txs, (storage, transfer_from.from_));
+        end with storage_from_tuple.0;
+    storage := List.fold(outer_transfer_iterator, transfer_param, storage);
 end with ((nil : list(operation)), storage);
 
 
