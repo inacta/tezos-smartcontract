@@ -273,9 +273,9 @@ begin
             var sender_account := get_account(transfer.from_, storage);
             sender_account.balance := abs(sender_account.balance - transfer.amount);
             storage.ledger[transfer.from_] := sender_account;
-            var recipientAccount : account := get_account(transfer.to_, storage);
-            recipientAccount.balance := recipientAccount.balance + transfer.amount;
-            storage.ledger[transfer.to_] := recipientAccount;
+            var recipient_account : account := get_account(transfer.to_, storage);
+            recipient_account.balance := recipient_account.balance + transfer.amount;
+            storage.ledger[transfer.to_] := recipient_account;
         end with storage;
 
     storage := list_fold(transfer_iterator, transfer_param, storage);
