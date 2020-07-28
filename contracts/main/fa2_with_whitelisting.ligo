@@ -146,6 +146,19 @@ begin
     if Tezos.sender =/= token_owner then failwith("Only owner can update operators") else skip;
 end with Unit;
 
+function get_account (const addr : address; const storage : storage) : account is
+  block {
+    var acct : account :=
+      record [
+        balance = 0n;
+        allowances = (set []: set(address));
+      ];
+    case storage.ledger[addr] of
+      None -> skip
+    | Some(instance) -> acct := instance
+    end;
+  } with acct
+
 function update_operators (const update_operators_parameter: update_operators_parameter; var storage: storage) : (list(operation) * storage) is
 begin
     function update_operators_iterator (var storage: storage; var update_operators_add_or_remove_michelson: update_operators_add_or_remove_michelson): storage is
@@ -155,14 +168,7 @@ begin
             var operator_parameter: operator_parameter := Layout.convert_from_right_comb(operator_parameter_michelson);
             const unit_value: unit = can_update_operators((operator_parameter.owner, storage));
 
-            var account: account := record
-                balance = 0n;
-                allowances = (set []: set(address));
-            end;
-            case storage.ledger[operator_parameter.owner] of
-                | Some(acc) -> account := acc
-                | None -> skip
-            end;
+            const account : account = get_account(operator_parameter.owner, storage);
 
             var allowances: set(address) := account.allowances;
 
@@ -274,14 +280,7 @@ begin
             end;
             sender_account.balance := abs(sender_account.balance - transfer.amount);
             storage.ledger[transfer.from_] := sender_account;
-            var recipientAccount: account := record
-                balance = 0n;
-                allowances = (set []: set(address));
-            end;
-            case storage.ledger[transfer.to_] of
-                Some (acc) -> recipientAccount := acc
-                | None -> skip
-            end;
+            var recipientAccount : account := get_account(transfer.to_, storage);
             recipientAccount.balance := recipientAccount.balance + transfer.amount;
             storage.ledger[transfer.to_] := recipientAccount;
         end with storage;
