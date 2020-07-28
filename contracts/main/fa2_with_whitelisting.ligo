@@ -232,7 +232,7 @@ end with (list [callback_operation], storage);
 
 (***** TRANSFER *****)
 // Throw iff Tezos.source (transcation originator) has not been granted access to spend from spender
-function is_allowed ( const spender : address ; const value : nat ; var s : storage) : unit is
+function is_allowed ( const spender : address ; var s : storage) : unit is
 begin
     if Tezos.sender =/= spender then block {
         const src: account = case s.ledger[spender] of
@@ -254,7 +254,7 @@ begin
     function transfer_iterator (const storage : storage; const transfer : transfer) : storage
         is begin
             (* Verify that transaction originator is allowed to spend from this address *)
-            const unit_value: unit = is_allowed(transfer.from_, transfer.amount, storage);
+            const unit_value: unit = is_allowed(transfer.from_, storage);
 
             if transfer.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
             if not (storage.whitelisteds contains transfer.from_) then failwith ("FA2_SENDER_NOT_WHITELISTED") else skip;
