@@ -11,12 +11,13 @@ const constants = require('./../helpers/constants.js');
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.
  */
-const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
+const { alice, bob, david } = require('./../scripts/sandbox/accounts');
 const {
     addWhitelisters,
     addWhitelisteds,
     removeWhitelisters,
     removeWhitelisteds,
+    transferParams,
     expectThrow,
 } = require('./util.js');
 
@@ -70,15 +71,9 @@ contract('fa2_wl', (_accounts) => {
 
             // Verify that transactions with 0 amount are possible, and that they
             // do not affect balances (part of FA2 spec that this must pass)
-            const transferParam = [
-                {
-                    token_id: 0,
-                    amount: 0,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-            ];
-            await fa2_wl_instance.transfer(transferParam);
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[bob, 0]] }])
+            );
             var accountBobAfter = await storage.ledger.get(bob.pkh);
             var accountAliceAfter = await storage.ledger.get(alice.pkh);
             assert(
@@ -88,8 +83,9 @@ contract('fa2_wl', (_accounts) => {
 
             // Verify that Alice can send to herself. It is a part of the FA2 spec
             // that this must pass. Verify this for both 0 amount and 1 amount
-            transferParam[0].to_ = alice.pkh;
-            await fa2_wl_instance.transfer(transferParam);
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[alice, 0]] }])
+            );
             accountBobAfter = await storage.ledger.get(bob.pkh);
             accountAliceAfter = await storage.ledger.get(alice.pkh);
             assert(
@@ -97,9 +93,9 @@ contract('fa2_wl', (_accounts) => {
             );
             assert(accountBobAfter.balance.isEqualTo(accountBobBefore.balance));
 
-            const transferAmount = 1;
-            transferParam[0].amount = transferAmount;
-            await fa2_wl_instance.transfer(transferParam);
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[alice, 1]] }])
+            );
             accountBobAfter = await storage.ledger.get(bob.pkh);
             accountAliceAfter = await storage.ledger.get(alice.pkh);
             assert(
@@ -108,18 +104,20 @@ contract('fa2_wl', (_accounts) => {
             assert(accountBobAfter.balance.isEqualTo(accountBobBefore.balance));
 
             // Verify that 1 token can be transferred from Alice to Bob
-            transferParam[0].to_ = bob.pkh;
-            await fa2_wl_instance.transfer(transferParam);
+            const amount = 1;
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[bob, amount]] }])
+            );
             var accountBobAfter = await storage.ledger.get(bob.pkh);
             var accountAliceAfter = await storage.ledger.get(alice.pkh);
             assert(
                 accountAliceAfter.balance.isEqualTo(
-                    accountAliceBefore.balance.minus(transferAmount)
+                    accountAliceBefore.balance.minus(amount)
                 )
             );
             assert(
                 accountBobAfter.balance.isEqualTo(
-                    accountBobBefore.balance.plus(transferAmount)
+                    accountBobBefore.balance.plus(amount)
                 )
             );
 
@@ -142,16 +140,6 @@ contract('fa2_wl', (_accounts) => {
                 addWhitelisteds([alice, bob])
             );
 
-            const tsfAmount = 5;
-            const transferParam = [
-                {
-                    token_id: 0,
-                    amount: tsfAmount,
-                    from_: bob.pkh,
-                    to_: alice.pkh,
-                },
-            ];
-
             let accountBobBefore;
             let accountAliceBefore;
             let accountBobAfter;
@@ -165,14 +153,17 @@ contract('fa2_wl', (_accounts) => {
 
             // Ensure that Bob has the necessary balance making the transfer to ensure that we are testing
             // the right thing
+            const amount = 5;
             assert(
                 accountBobBefore.balance.isGreaterThanOrEqualTo(
-                    new BigNumber(tsfAmount)
+                    new BigNumber(amount)
                 )
             );
 
             expectThrow(
-                fa2_wl_instance.transfer(transferParam),
+                fa2_wl_instance.transfer(
+                    transferParams([{ from: bob, to: [[alice, amount]] }])
+                ),
                 constants.contractErrors.notOperator
             );
             accountBobAfter = await storage.ledger.get(bob.pkh);
@@ -206,30 +197,32 @@ contract('fa2_wl', (_accounts) => {
             // Verify that 1 can be withdrawn as this is David's balance
             var accountDavid = await storage.ledger.get(david.pkh);
             assert(accountDavid.balance.isEqualTo(new BigNumber(2)));
-            const transferParam = [
-                {
-                    token_id: 0,
-                    // Alice's balance at this point is 9
-                    amount: 1,
-                    from_: david.pkh,
-                    to_: alice.pkh,
-                },
-            ];
-            await fa2_wl_instance.transfer(transferParam);
+            // Alice's balance at this point is 9
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: david, to: [[alice, 1]] }])
+            );
             accountDavid = await storage.ledger.get(david.pkh);
             assert(accountDavid.balance.isEqualTo(new BigNumber(1)));
 
             // Transfer 1 from David to Bob
             accountDavid = await storage.ledger.get(david.pkh);
-            transferParam[0].to_ = bob.pkh;
-            await fa2_wl_instance.transfer(transferParam);
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: david, to: [[bob, 1]] }])
+            );
             accountDavid = await storage.ledger.get(david.pkh);
             assert(accountDavid.balance.isEqualTo(new BigNumber(0)));
 
             // Disallow another transaction since David's balance is now 0
             await expectThrow(
-                fa2_wl_instance.transfer(transferParam),
+                fa2_wl_instance.transfer(
+                    transferParams([{ from: david, to: [[bob, 1]] }])
+                ),
                 constants.contractErrors.insufficientBalance
+            );
+            
+            // Transfer back some coins for test below
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[david, 1]] }])
             );
 
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
@@ -250,21 +243,17 @@ contract('fa2_wl', (_accounts) => {
             );
             let accountBobBefore = await storage.ledger.get(bob.pkh);
             let accountAliceBefore = await storage.ledger.get(alice.pkh);
-            let transferParam = [
-                {
-                    token_id: 0,
-                    amount: 1,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-                {
-                    token_id: 0,
-                    amount: 2,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-            ];
-            await fa2_wl_instance.transfer(transferParam);
+            await fa2_wl_instance.transfer(
+                transferParams([
+                    {
+                        from: alice,
+                        to: [
+                            [bob, 1],
+                            [bob, 2],
+                        ],
+                    },
+                ])
+            );
             let accountBobAfter = await storage.ledger.get(bob.pkh);
             let accountAliceAfter = await storage.ledger.get(alice.pkh);
             assert(
@@ -277,41 +266,32 @@ contract('fa2_wl', (_accounts) => {
                     accountBobBefore.balance.plus(3)
                 )
             );
-            transferParam = [
-                {
-                    token_id: 0,
-                    amount: 1,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-                {
-                    token_id: 0,
-                    amount: 20,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-            ];
             await expectThrow(
-                fa2_wl_instance.transfer(transferParam),
+                fa2_wl_instance.transfer(
+                    transferParams([
+                        {
+                            from: alice,
+                            to: [
+                                [bob, 1],
+                                [bob, 20],
+                            ],
+                        },
+                    ])
+                ),
                 constants.contractErrors.insufficientBalance
             );
-            // Check both orders
-            transferParam = [
-                {
-                    token_id: 0,
-                    amount: 20,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-                {
-                    token_id: 0,
-                    amount: 1,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-            ];
             await expectThrow(
-                fa2_wl_instance.transfer(transferParam),
+                fa2_wl_instance.transfer(
+                    transferParams([
+                        {
+                            from: alice,
+                            to: [
+                                [bob, 20],
+                                [bob, 1],
+                            ],
+                        },
+                    ])
+                ),
                 constants.contractErrors.insufficientBalance
             );
             let accountAliceAfterFail = await storage.ledger.get(alice.pkh);
@@ -336,31 +316,131 @@ contract('fa2_wl', (_accounts) => {
             );
         });
 
+        it('outer-multi-transfer should succeed if balance is sufficient or else fail completely', async () => {
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(
+                addWhitelisteds([alice, bob, david])
+            );
+            let accountAliceBefore = await storage.ledger.get(alice.pkh);
+            let accountBobBefore = await storage.ledger.get(bob.pkh);
+            let accountDavidBefore = await storage.ledger.get(david.pkh);
+            await fa2_wl_instance.transfer(
+                transferParams([
+                    {
+                        from: alice,
+                        to: [
+                            [bob, 1],
+                        ],
+                    },
+                    {
+                        from: david,
+                        to: [
+                            [bob, 1],
+                        ],
+                    },
+                ])
+            );
+            let accountAliceAfter = await storage.ledger.get(alice.pkh);
+            let accountBobAfter = await storage.ledger.get(bob.pkh);
+            let accountDavidAfter = await storage.ledger.get(david.pkh);
+            assert(
+                accountAliceAfter.balance.isEqualTo(
+                    accountAliceBefore.balance.minus(1)
+                )
+            );
+            assert(
+                accountBobAfter.balance.isEqualTo(
+                    accountBobBefore.balance.plus(2)
+                )
+            );
+            assert(
+                accountDavidAfter.balance.isEqualTo(
+                    accountDavidBefore.balance.minus(1)
+                )
+            );
+            await expectThrow(
+                fa2_wl_instance.transfer(
+                    transferParams([
+                        {
+                            from: alice,
+                            to: [
+                                [bob, 1],
+                            ],
+                        },
+                        {
+                            from: david,
+                            to: [
+                                [bob, 20],
+                            ],
+                        },
+                    ])
+                ),
+                constants.contractErrors.insufficientBalance
+            );
+            await expectThrow(
+                fa2_wl_instance.transfer(
+                    transferParams([
+                        {
+                            from: alice,
+                            to: [
+                                [bob, 20],
+                            ],
+                        },
+                        {
+                            from: david,
+                            to: [
+                                [bob, 1],
+                            ],
+                        },
+                    ])
+                ),
+                constants.contractErrors.insufficientBalance
+            );
+            let accountAliceAfterFail = await storage.ledger.get(alice.pkh);
+            let accountBobAfterFail = await storage.ledger.get(bob.pkh);
+            let accountDavidAfterFail = await storage.ledger.get(david.pkh);
+            assert(
+                accountAliceAfter.balance.isEqualTo(
+                    accountAliceAfterFail.balance
+                )
+            );
+            assert(
+                accountBobAfter.balance.isEqualTo(accountBobAfterFail.balance)
+            );
+            assert(
+                accountDavidAfter.balance.isEqualTo(accountDavidAfterFail.balance)
+            );
+
+            // Remove Alice and Bob from whitelisted. This must be done in the opposite
+            // order of how they were added
+            // Done to keep state of test runtime unaffected from this test
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice, bob, david])
+            );
+            await fa2_wl_instance.update_whitelisters(
+                removeWhitelisters([alice])
+            );
+        });
+
         it("should not transfer tokens from Alice to Bob when Alice's balance is insufficient", async () => {
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
             await fa2_wl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob])
             );
 
-            const transferParam = [
-                {
-                    token_id: 0,
-                    amount: 100,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-            ];
-
             await expectThrow(
-                fa2_wl_instance.transfer(transferParam),
+                fa2_wl_instance.transfer(
+                    transferParams([{ from: alice, to: [[bob, 100]] }])
+                ),
                 constants.contractErrors.insufficientBalance
             );
 
             // Change amount and verify that it works
-            transferParam[0].amount = 1;
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
             const accountBobBefore = await storage.ledger.get(bob.pkh);
-            await fa2_wl_instance.transfer(transferParam);
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[bob, 1]] }])
+            );
             const accountAliceAfter = await storage.ledger.get(alice.pkh);
             const accountBobAfter = await storage.ledger.get(bob.pkh);
             assert(

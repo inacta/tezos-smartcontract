@@ -13,6 +13,7 @@ const {
     addWhitelisteds,
     removeWhitelisters,
     removeWhitelisteds,
+    transferParams,
     expectThrow,
 } = require('./util.js');
 
@@ -199,28 +200,18 @@ contract('fa2_wl', (_accounts) => {
 
             const aliceAccountStart = await storage.ledger.get(alice.pkh);
             const bobAccountStart = await storage.ledger.get(bob.pkh);
-            var transferParamSingle = [
+            var transferParamSingle = transferParams([
+                { from: alice, to: [[bob, 1]] },
+            ]);
+            var transferParamMultiple = transferParams([
                 {
-                    token_id: 0,
-                    amount: 1,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
+                    from: alice,
+                    to: [
+                        [bob, 1],
+                        [charlie, 1],
+                    ],
                 },
-            ];
-            var transferParamMultiple = [
-                {
-                    token_id: 0,
-                    amount: 1,
-                    from_: alice.pkh,
-                    to_: bob.pkh,
-                },
-                {
-                    token_id: 0,
-                    amount: 1,
-                    from_: alice.pkh,
-                    to_: charlie.pkh,
-                },
-            ];
+            ]);
 
             // Neither sender nor receiver are whitelisted. Verify that is fails with message
             // FA2_SENDER_NOT_WHITELISTED
