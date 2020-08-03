@@ -219,6 +219,9 @@ is begin
 end with (list [callback_operation], storage);
 
 
+// No additional checks are imposed here
+function transfer_allowed(const from_ : address ; const to_ : address ; const storage : storage) : unit is Unit;
+
 (***** TRANSFER *****)
 // Throw iff Tezos.source (transcation originator) has not been granted access to spend from spender
 function is_allowed ( const spender : address ; var s : storage) : unit is
@@ -249,6 +252,8 @@ begin
 
             const transfer_to : transfer_to = Layout.convert_from_right_comb(transfer_to_michelson);
             if transfer_to.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
+
+            const unit_value: unit = transfer_allowed(from_, transfer_to.to_, storage);
 
             const sender_balance: nat = get_token_balance(transfer_to.token_id, from_, storage);
             if sender_balance < transfer_to.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
