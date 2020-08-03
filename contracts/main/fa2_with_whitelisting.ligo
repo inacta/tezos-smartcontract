@@ -428,12 +428,11 @@ end with ((nil: list(operation)), storage);
 
 (***** MAIN FUNCTION *****)
 (* Default function that represents our contract, it's sole purpose here is the entrypoint routing *)
-function main (const action : action; var storage : storage) : (list(operation) * storage)
-    is (case action of
-    (*
-        Unwrap the `Transfer(...)` parameters and invoke the transfer function.
-        The return value of `transfer(...)` is then returned as a result of `main(...)` as well.
-     *)
+function main (const action : action; var storage : storage) : (list(operation) * storage) is
+begin
+    if amount =/= 0tz then failwith("This contract does not accept tezi deposits")
+    else skip;
+end with case action of
     | Transfer(transfer_param) -> transfer(transfer_param, storage)
     | Balance_of(balance_of_parameter_michelson) -> balance_of(balance_of_parameter_michelson, storage)
     | Update_operators(update_operators_parameter) -> update_operators(update_operators_parameter, storage)
@@ -443,4 +442,4 @@ function main (const action : action; var storage : storage) : (list(operation) 
     | Renounce_wl_admin -> renounce_wl_admin(storage)
     | Update_whitelisters(update_whitelisters_parameter) -> update_whitelisters(update_whitelisters_parameter, storage)
     | Update_whitelisteds(update_whitelisteds_parameter) -> update_whitelisteds(update_whitelisteds_parameter, storage)
-    end)
+    end

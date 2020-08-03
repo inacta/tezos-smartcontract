@@ -280,10 +280,13 @@ end with (list [callback_operation], storage);
 
 (***** MAIN FUNCTION *****)
 (* Default function that represents our contract, it's sole purpose here is the entrypoint routing *)
-function main (const action : action; var storage : storage) : (list(operation) * storage)
-    is (case action of
+function main (const action : action; var storage : storage) : (list(operation) * storage) is
+begin
+    if amount =/= 0tz then failwith("This contract does not accept tezi deposits")
+    else skip;
+end with case action of
     | Transfer(transfer_param) -> transfer(transfer_param, storage)
     | Balance_of(balance_of_parameter_michelson) -> balance_of(balance_of_parameter_michelson, storage)
     | Update_operators(update_operators_parameter) -> update_operators(update_operators_parameter, storage)
     | Token_metadata_registry(token_metadata_registry_parameter) -> token_metadata_registry(token_metadata_registry_parameter, storage)
-    end)
+    end
