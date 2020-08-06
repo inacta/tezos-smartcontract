@@ -1,45 +1,8 @@
+#include "../partials/fa2_types.ligo"
+
 // Type of actions called on external contract
 // Token_metadata_registry endpoint
 type token_metadata_registry_action is Token_metadata_registry of contract(address);
-
-// Balance_of endpoint
-type token_id is nat;
-type token_owner is address;
-type token_balance is nat;
-
-type balance_of_request is record
-    owner: token_owner;
-    token_id: token_id;
-end;
-
-type balance_of_response is record
-    request: balance_of_request;
-    balance: token_balance;
-end;
-
-type balance_of_callback is contract(list(balance_of_response));
-
-type balance_of_parameter is record
-    requests: list(balance_of_request);
-    callback: balance_of_callback;
-end;
-
-type balance_of_request_michelson is michelson_pair_right_comb(balance_of_request);
-
-type balance_of_response_auxiliary is record [
-    balance: token_balance;
-    request: balance_of_request_michelson;
-]
-
-type balance_of_response_michelson is michelson_pair_right_comb(balance_of_response_auxiliary);
-
-type balance_of_callback_michelson is contract(list(balance_of_response_michelson));
-
-type balance_of_parameter_auxiliary is record [
-    requests: list(balance_of_request_michelson);
-    callback: balance_of_callback_michelson;
-]
-type balance_of_parameter_michelson is michelson_pair_right_comb(balance_of_parameter_auxiliary);
 
 type balance_of_wrapper is record
     request: list(balance_of_request_michelson);
