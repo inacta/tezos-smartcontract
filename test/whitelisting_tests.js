@@ -225,13 +225,13 @@ contract('fa2_wl', (_accounts) => {
             );
 
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0')
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0')
                 )
             );
 
@@ -243,13 +243,13 @@ contract('fa2_wl', (_accounts) => {
             );
 
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0')
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0')
                 )
             );
 
@@ -264,13 +264,13 @@ contract('fa2_wl', (_accounts) => {
             );
 
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0')
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0')
                 )
             );
 
@@ -278,13 +278,13 @@ contract('fa2_wl', (_accounts) => {
             await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice]));
             await fa2_wl_instance.transfer(transferParamSingle);
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance.minus(1)
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0').minus(1)
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance.plus(1)
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0').plus(1)
                 )
             );
 
@@ -295,13 +295,13 @@ contract('fa2_wl', (_accounts) => {
                 constants.contractErrors.receiverNotWhitelisted
             );
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance.minus(1)
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0').minus(1)
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance.plus(1)
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0').plus(1)
                 )
             );
 

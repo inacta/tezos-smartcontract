@@ -4,13 +4,16 @@ type token_owner is address;
  // If changing contract to handle multiple assets, add token_id to token_lookup_id
 type token_lookup_id is token_owner;
 type token_balance is nat;
+type token_id is nat;
 
 type account is record
-    balance : token_balance;
+    // Currently nested big_maps are not supported so we have to use a map here
+    // This data structure matches the one in the reference implementation found at
+    // https://github.com/stove-labs/tzip-12/blob/404004ec14c1ff6001ea3b1450c08139ee6ed13f/contracts/partials/tzip-12/transfer/flavours/nft/storage.religo
+    balances: map(token_id, nat);
     allowances: set (address);
 end
 type ledger is big_map(token_owner, account);
-type token_id is nat;
 type token_metadata is record
     token_id: token_id;
     symbol: string;
@@ -18,8 +21,6 @@ type token_metadata is record
     decimals: nat;
     extras: map(string, string);
 end
-
-type token_id is nat;
 
 
 (***** Transfer types *****)
