@@ -37,6 +37,8 @@ $ yarn migrate
 ```
 
 **Run the contract tests**
+1. install [Ganache CLI](https://github.com/trufflesuite/ganache-cli/tree/tezos) a Tezos sandbox with `npm i -g ganache-cli@tezos`
+2. start the node: `ganache-cli --flavor tezos --seed alice`
 ```shell
 $ yarn test
 ```
