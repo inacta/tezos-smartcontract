@@ -1,4 +1,6 @@
 build/
+out/
+ligo
 node_modules/
 deployments/
 scripts/tools/**
