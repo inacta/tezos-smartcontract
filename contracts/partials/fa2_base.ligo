@@ -130,7 +130,7 @@ begin
 
             const transfer_to : transfer_to = Layout.convert_from_right_comb(transfer_to_michelson);
 
-            const unit_value: unit = transfer_allowed(from_, transfer_to.to_, storage);
+            const unit_value: unit = transfer_allowed(from_, transfer_to.to_, transfer_to.token_id, storage);
 
             // get_token_balance throws if token_id is not registered in this contract
             const sender_balance: nat = get_token_balance(transfer_to.token_id, from_, storage);
