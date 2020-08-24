@@ -485,8 +485,16 @@ contract('fa2_wl', (_accounts) => {
 
         it('should disallow transfers of unrecognized tokens', async () => {
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+
+            // Whitelist Alice and Bob for all relevant tokens
             await fa2_wl_instance.update_whitelisteds(
-                addWhitelisteds([alice, bob])
+                addWhitelisteds([alice, bob], 2)
+            );
+            await fa2_wl_instance.update_whitelisteds(
+                addWhitelisteds([alice, bob], 1)
+            );
+            await fa2_wl_instance.update_whitelisteds(
+                addWhitelisteds([alice, bob], 0)
             );
 
             await expectThrow(
@@ -580,8 +588,121 @@ contract('fa2_wl', (_accounts) => {
                     accountBobBefore.balances.get('0'))
             );
 
+            // Remove Alice and Bob from the tokens for which they were whitelisted
             await fa2_wl_instance.update_whitelisteds(
-                removeWhitelisteds([alice, bob])
+                removeWhitelisteds([alice, bob], 0)
+            );
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice, bob], 1)
+            );
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice, bob], 2)
+            );
+            await fa2_wl_instance.update_whitelisters(
+                removeWhitelisters([alice])
+            );
+        });
+
+        it('should not allow transfer when whitelisted for wrong token_id', async () => {
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+
+            // Whitelist Alice and Bob for token_id = 1, attempt to transfer token_id = 0
+            await fa2_wl_instance.update_whitelisteds(
+                addWhitelisteds([alice, bob], 1)
+            );
+
+            const accountAliceBefore = await storage.ledger.get(alice.pkh);
+            const accountBobBefore = await storage.ledger.get(bob.pkh);
+
+            await expectThrow(
+                fa2_wl_instance.transfer(
+                    transferParams([{ from: alice, to: [[bob, 1]] }], 0)
+                ),
+                constants.contractErrors.senderNotWhitelisted
+            );
+
+            var accountAliceAfter = await storage.ledger.get(alice.pkh);
+            var accountBobAfter = await storage.ledger.get(bob.pkh);
+
+            // Verify that nothing was transferred
+            assert(
+                accountAliceAfter.balances.get('1').isEqualTo(
+                    accountAliceBefore.balances.get('1')
+                )
+            );
+            assert(
+                accountBobAfter.balances.get('1').isEqualTo(
+                    accountBobBefore.balances.get('1')
+                )
+            );
+            assert(
+                accountAliceAfter.balances.get('0').isEqualTo(
+                    accountAliceBefore.balances.get('0'))
+            );
+            assert(
+                accountBobAfter.balances.get('0').isEqualTo(
+                    accountBobBefore.balances.get('0'))
+            );
+
+            // Transfer 1 unit of token_id = 1 and verify that this works
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[bob, 1]] }], 1)
+            );
+            accountAliceAfter = await storage.ledger.get(alice.pkh);
+            accountBobAfter = await storage.ledger.get(bob.pkh);
+            assert(
+                accountAliceAfter.balances.get('1').isEqualTo(
+                    accountAliceBefore.balances.get('1').minus(1)
+                )
+            );
+            assert(
+                accountBobAfter.balances.get('1').isEqualTo(
+                    accountBobBefore.balances.get('1').plus(1)
+                )
+            );
+            assert(
+                accountAliceAfter.balances.get('0').isEqualTo(
+                    accountAliceBefore.balances.get('0'))
+            );
+            assert(
+                accountBobAfter.balances.get('0').isEqualTo(
+                    accountBobBefore.balances.get('0'))
+            );
+
+            // Whitelist Alice and Bob for token_id = 0, and verify that transfer of token_id = 0 is now allowed
+            await fa2_wl_instance.update_whitelisteds(
+                addWhitelisteds([alice, bob], 0)
+            );
+            await fa2_wl_instance.transfer(
+                transferParams([{ from: alice, to: [[bob, 1]] }], 0)
+            );
+            accountAliceAfter = await storage.ledger.get(alice.pkh);
+            accountBobAfter = await storage.ledger.get(bob.pkh);
+            assert(
+                accountAliceAfter.balances.get('1').isEqualTo(
+                    accountAliceBefore.balances.get('1').minus(1)
+                )
+            );
+            assert(
+                accountBobAfter.balances.get('1').isEqualTo(
+                    accountBobBefore.balances.get('1').plus(1)
+                )
+            );
+            assert(
+                accountAliceAfter.balances.get('0').isEqualTo(
+                    accountAliceBefore.balances.get('0').minus(1)), "Alice's balance is reduced"
+            );
+            assert(
+                accountBobAfter.balances.get('0').isEqualTo(
+                    accountBobBefore.balances.get('0').plus(1)), "Bob's balance is increased"
+            );
+
+            // Reset whitelisteds value
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice, bob], 1)
+            );
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice, bob], 0)
             );
             await fa2_wl_instance.update_whitelisters(
                 removeWhitelisters([alice])

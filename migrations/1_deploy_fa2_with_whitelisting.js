@@ -39,10 +39,11 @@ const token_metadata = MichelsonMap.fromLiteral({
     [`0`]: asset_description_0,
     [`1`]: asset_description_1,
 });
+const empty_whitelisteds = MichelsonMap.fromLiteral({});
 const initial_storage = {
     ledger: initial_ledger,
     token_metadata: token_metadata,
-    whitelisteds: [],
+    whitelisteds: empty_whitelisteds,
     whitelisters: [],
     whitelist_admins: [alice.pkh],
     non_revocable_whitelist_admin: alice.pkh,

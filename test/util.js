@@ -2,16 +2,30 @@ function addWhitelisters(addresses) {
     return args(addresses, 'add_whitelister');
 }
 
-function addWhitelisteds(addresses) {
-    return args(addresses, 'add_whitelisted');
+function addWhitelisteds(accounts, token_id = 0) {
+    return accounts.map(account => {
+        return {
+            add_whitelisted: {
+                token_id,
+                address: account.pkh,
+            }
+        }
+    });
 }
 
 function removeWhitelisters(addresses) {
     return args(addresses, 'remove_whitelister');
 }
 
-function removeWhitelisteds(addresses) {
-    return args(addresses, 'remove_whitelisted');
+function removeWhitelisteds(accounts, token_id = 0) {
+    return accounts.map(account => {
+        return {
+            remove_whitelisted: {
+                token_id,
+                address: account.pkh,
+            }
+        }
+    });
 }
 
 function args(addresses, field) {
