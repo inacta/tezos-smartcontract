@@ -5,7 +5,7 @@ const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.
  */
-const { bob } = require('./../scripts/sandbox/accounts');
+const { bob } = require('../../scripts/sandbox/accounts');
 
 contract('fa2_wl', (_accounts) => {
     let storage;

@@ -7,7 +7,7 @@ const { expectThrow } = require('./util.js');
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.
  */
-const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
+const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');
 
 contract('fa2_wl', (_accounts) => {
     let storage;

@@ -4,14 +4,14 @@ const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 
 const {
     initial_storage,
-} = require('../migrations/1_deploy_fa2_with_whitelisting.js');
-const constants = require('./../helpers/constants.js');
+} = require('../../migrations/1_deploy_fa2_with_whitelisting.js');
+const constants = require('../../helpers/constants.js');
 
 /**
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.
  */
-const { alice, bob, david } = require('./../scripts/sandbox/accounts');
+const { alice, bob, david } = require('../../scripts/sandbox/accounts');
 const {
     addWhitelisters,
     addWhitelisteds,

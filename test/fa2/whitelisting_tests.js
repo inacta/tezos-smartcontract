@@ -1,7 +1,7 @@
 const fa2_wl = artifacts.require('fa2_with_whitelisting');
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 
-const constants = require('./../helpers/constants.js');
+const constants = require('../../helpers/constants.js');
 
 /**
  * For testing on a babylonnet (testnet), instead of the sandbox network,
