@@ -1,15 +1,14 @@
 const fa2_wl = artifacts.require('fa2_with_whitelisting');
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 
-const constants = require('../../helpers/constants.js');
+const constants = require('../../helpers/fa2Constants.js');
 
 /**
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.
  */
 const { alice, bob } = require('../../scripts/sandbox/accounts');
-const { expectThrow } = require('./util.js');
-
+const { expectThrow } = require("../shared_utils.js");
 function addOperators(tuple_list) {
     return tuple_list.map(function (x) {
         return { add_operator: { owner: x[0], operator: x[1] } };

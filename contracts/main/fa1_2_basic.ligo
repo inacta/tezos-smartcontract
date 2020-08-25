@@ -66,7 +66,7 @@ function transfer (const accountFrom : address ; const destination : address ; c
 
     // Check that the source can spend that much
     if value > src.balance
-    then failwith ("Source balance is too low");
+    then failwith ("NotEnoughBalance");
     else skip;
 
     // Update the source balance

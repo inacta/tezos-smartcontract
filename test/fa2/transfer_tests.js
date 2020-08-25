@@ -5,7 +5,7 @@ const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 const {
     initial_storage,
 } = require('../../migrations/1_deploy_fa2_with_whitelisting.js');
-const constants = require('../../helpers/constants.js');
+const constants = require('../../helpers/fa2Constants.js');
 
 /**
  * For testing on a babylonnet (testnet), instead of the sandbox network,
@@ -18,8 +18,8 @@ const {
     removeWhitelisters,
     removeWhitelisteds,
     transferParams,
-    expectThrow,
 } = require('./util.js');
+const { expectThrow } = require("../shared_utils.js");
 
 contract('fa2_wl', (_accounts) => {
     let storage;
