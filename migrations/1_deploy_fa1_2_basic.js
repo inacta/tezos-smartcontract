@@ -1,27 +1,10 @@
 const fa1_2_basic = artifacts.require('fa1_2_basic');
-const { alice, bob, charlie, david } = require('../scripts/sandbox/accounts');
-const { MichelsonMap } = require('@taquito/taquito');
 const saveContractAddress = require('../helpers/saveContractAddress');
-
-// Set initial storage which is a parameter to the deployment
-// operation
-const initial_account_alice = { balance: 10, allowances: MichelsonMap.fromLiteral({}) };
-const initial_account_bob = { balance: 10, allowances: MichelsonMap.fromLiteral({[`${alice.pkh}`]: 8}) };
-const initial_account_david = { balance: 2, allowances: MichelsonMap.fromLiteral({}) };
-const initial_ledger = MichelsonMap.fromLiteral({
-    [`${alice.pkh}`]: initial_account_alice,
-    [`${bob.pkh}`]: initial_account_bob,
-    [`${david.pkh}`]: initial_account_david,
-});
-const initial_storage = {
-    ledger: initial_ledger,
-    total_supply: 22,
-};
+const storage = require('./../helpers/storage');
 
 module.exports = async (deployer, network, accounts) => {
     // TODO format to await instead of .then
     deployer
-        .deploy(fa1_2_basic, initial_storage)
+        .deploy(fa1_2_basic, storage.initial_storage_fa1_2_basic)
         .then((contract) => saveContractAddress('tzip7', contract.address));
 };
-module.exports.initial_storage = initial_storage;

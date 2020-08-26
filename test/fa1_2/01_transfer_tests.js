@@ -1,5 +1,6 @@
 const BigNumber = require('bignumber.js');
 const fa1_2_basic = artifacts.require("fa1_2_basic");
+const initial_storage = require('./../../helpers/storage');
 
 const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');
 
@@ -14,7 +15,7 @@ contract('fa1_2_basic', (_accounts) => {
     let fa1_2_basic_instance;
 
     before(async () => {
-        fa1_2_basic_instance = await fa1_2_basic.deployed();
+        fa1_2_basic_instance = await fa1_2_basic.new(initial_storage.initial_storage_fa1_2_basic);
 
         /**
          * Display the current contract address for debugging purposes

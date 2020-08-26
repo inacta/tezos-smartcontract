@@ -1,7 +1,8 @@
 const fa2_wl = artifacts.require('fa2_with_whitelisting');
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
-const constants = require('./../helpers/constants.js');
-const { expectThrow } = require('./util.js');
+const constants = require('../../helpers/fa2Constants.js');
+const { expectThrow } = require('./../shared_utils.js');
+const initial_storage = require('./../../helpers/storage');
 
 /**
  * For testing on a babylonnet (testnet), instead of the sandbox network,
@@ -16,8 +17,8 @@ contract('fa2_wl', (_accounts) => {
     let fa2_wl_wrapper_instance;
 
     before(async () => {
-        fa2_wl_instance = await fa2_wl.deployed();
-        fa2_wl_wrapper_instance = await fa2_wl_wrapper.deployed();
+        fa2_wl_instance = await fa2_wl.new(initial_storage.initial_storage_fa2_wl);
+        fa2_wl_wrapper_instance = await fa2_wl_wrapper.new(initial_storage.initial_storage_fa2_wl_wrapper);
 
         /**
          * Display the current contract address for debugging purposes

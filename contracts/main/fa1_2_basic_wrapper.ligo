@@ -14,7 +14,7 @@ type action is
 // External actions
 type get_allowance_action is Get_allowance of (address * address * contract(nat));
 type get_balance_action is Get_balance of (address * contract(nat));
-type get_total_supply_action is Get_total_supply of contract(nat);
+type get_total_supply_action is Get_total_supply of (unit * contract(nat));
 
 type storage is record
     allowance_response : nat;
@@ -80,8 +80,9 @@ begin
 
     // The endpoint get_total_supple takes an argument of type contract(nat)
     const self_contract : contract(nat) = Tezos.self("%store_total_supply");
+    const argument: (unit * contract(nat)) = (Unit, self_contract);
     const result: (list(operation) * storage) =
-    ((list [Tezos.transaction(Get_total_supply(self_contract), 0mutez, other_contract)]: list(operation)), storage);
+    ((list [Tezos.transaction(Get_total_supply(argument), 0mutez, other_contract)]: list(operation)), storage);
 end with result
 
 function main (const action: action; const s: storage): (list(operation) * storage) is

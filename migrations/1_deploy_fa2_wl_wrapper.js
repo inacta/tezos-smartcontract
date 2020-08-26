@@ -1,19 +1,11 @@
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
-const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
-const { MichelsonMap, UnitValue } = require('@taquito/taquito');
+const initial_storage = require('./../helpers/storage');
 const saveContractAddress = require('./../helpers/saveContractAddress');
-
-// Set initial storage which is a parameter to the deployment
-// operation
-const initial_storage = {
-    tmr_response: bob.pkh,
-    balance_responses: [],
-};
 
 module.exports = async (deployer, network, accounts) => {
     // TODO format to await instead of .then
     deployer
-        .deploy(fa2_wl_wrapper, initial_storage)
+        .deploy(fa2_wl_wrapper, initial_storage.initial_storage_fa2_wl_wrapper)
         .then((contract) => {
             saveContractAddress('tzip12', contract.address);
         })
@@ -21,4 +13,3 @@ module.exports = async (deployer, network, accounts) => {
             console.log(err);
         });
 };
-module.exports.initial_storage = initial_storage;
