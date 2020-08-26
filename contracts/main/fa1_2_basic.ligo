@@ -73,6 +73,16 @@ function transfer (const accountFrom : address ; const destination : address ; c
     // Using the abs function to convert int to nat
     src.balance := abs(src.balance - value);
 
+    // Decrease the allowance amount if necessary
+    if accountFrom =/= sender then block {
+        const allowanceAmount: nat = case src.allowances[Tezos.sender] of
+          Some (allowance) -> allowance
+          | None -> (failwith("NoAllowance"): nat)
+        end;
+        if allowanceAmount - value < 0 then failwith ("Allowance amount cannot be negative");
+        else src.allowances[Tezos.sender] := abs(allowanceAmount - value);
+    } else skip;
+
     s.ledger[accountFrom] := src;
 
     // Fetch dst account or add empty dst account to ledger
@@ -87,16 +97,6 @@ function transfer (const accountFrom : address ; const destination : address ; c
 
     // Update the destination balance
     dst.balance := dst.balance + value;
-
-    // Decrease the allowance amount if necessary
-    if accountFrom =/= sender then block {
-        const allowanceAmount: nat = case src.allowances[Tezos.sender] of
-          Some (allowance) -> allowance
-          | None -> (failwith("NoAllowance"): nat)
-        end;
-        if allowanceAmount - value < 0 then failwith ("Allowance amount cannot be negative");
-        else src.allowances[Tezos.sender] := abs(allowanceAmount - value);
-    } else skip;
 
     s.ledger[destination] := dst;
   }
