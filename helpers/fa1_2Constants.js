@@ -8,5 +8,6 @@ module.exports = {
     },
     contractErrors: {
         insufficientBalance: 'NotEnoughBalance',
+        insufficientAllowance: 'NotEnoughAllowance',
     },
 };
