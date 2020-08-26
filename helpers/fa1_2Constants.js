@@ -9,5 +9,6 @@ module.exports = {
     contractErrors: {
         insufficientBalance: 'NotEnoughBalance',
         insufficientAllowance: 'NotEnoughAllowance',
+        unsafeAllowanceChange: 'UnsafeAllowanceChange',
     },
 };

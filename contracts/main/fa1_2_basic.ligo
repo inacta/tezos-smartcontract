@@ -10,16 +10,16 @@ end
 type action is
 | Transfer of (address * address * nat)
 | Approve of (address * nat)
-| GetAllowance of (address * address * contract(nat))
-| GetBalance of (address * contract(nat))
-| GetTotalSupply of (unit * contract(nat))
+| Get_allowance of (address * address * contract(nat))
+| Get_balance of (address * contract(nat))
+| Get_total_supply of (unit * contract(nat))
 
 type contract_storage is record
   ledger: big_map(address, account);
   total_supply: nat;
 end
 
-function isAllowed ( const spender : address ; const value : nat ; var s : contract_storage) : bool is
+function is_allowed ( const spender : address ; const value : nat ; var s : contract_storage) : bool is
   begin
     var allowed: bool := False;
     if Tezos.sender =/= spender then block {
@@ -48,7 +48,7 @@ function transfer (const accountFrom : address ; const destination : address ; c
   if accountFrom = destination then skip;
   else block {
     // Verify that caller address (Sender) is allowed to spend from this address
-    const allowed = isAllowed(accountFrom, value, s);
+    const allowed = is_allowed(accountFrom, value, s);
     if allowed then skip;
     else failwith ("NotEnoughAllowance");
 
@@ -145,7 +145,7 @@ function approve (const spender : address ; const value : nat ; var s : contract
 //  None
 // Post conditions:
 //  The state is unchanged
-function getAllowance (const owner : address ; const spender : address ; const contr : contract(nat) ; var s : contract_storage) : list(operation) is
+function get_allowance (const owner : address ; const spender : address ; const contr : contract(nat) ; var s : contract_storage) : list(operation) is
 begin
     const destAllowance: nat =
     case s.ledger[owner] of
@@ -163,7 +163,7 @@ end with list [transaction(destAllowance, 0tz, contr)]
 //  None
 // Post conditions:
 //  The state is unchanged
-function getBalance (const src : address ; const contr : contract(nat) ; var s : contract_storage) : list(operation) is
+function get_balance (const src : address ; const contr : contract(nat) ; var s : contract_storage) : list(operation) is
 begin
     const balance_: nat = case s.ledger[src] of
         | Some (acc) -> acc.balance
@@ -176,7 +176,7 @@ end with list [transaction(balance_, 0tz, contr)]
 //  None
 // Post conditions:
 //  The state is unchanged
-function getTotalSupply (const contr : contract(nat) ; var s : contract_storage) : list(operation) is
+function get_total_supply (const contr : contract(nat) ; var s : contract_storage) : list(operation) is
   list [transaction(s.total_supply, 0tz, contr)]
 
 function main (const p : action ; const s : contract_storage) :
@@ -188,7 +188,7 @@ function main (const p : action ; const s : contract_storage) :
   } with case p of
   | Transfer(n) -> ((nil : list(operation)), transfer(n.0, n.1, n.2, s))
   | Approve(n) -> ((nil : list(operation)), approve(n.0, n.1, s))
-  | GetAllowance(n) -> (getAllowance(n.0, n.1, n.2, s), s)
-  | GetBalance(n) -> (getBalance(n.0, n.1, s), s)
-  | GetTotalSupply(n) -> (getTotalSupply(n.1, s), s)
+  | Get_allowance(n) -> (get_allowance(n.0, n.1, n.2, s), s)
+  | Get_balance(n) -> (get_balance(n.0, n.1, s), s)
+  | Get_total_supply(n) -> (get_total_supply(n.1, s), s)
   end
