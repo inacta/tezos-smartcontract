@@ -44,7 +44,8 @@
     "env:restart": "yarn sandbox:restart -- carthage && yarn tools:restart bbbox",
     "env:clean": "yarn tools:kill bbbox && yarn tools:clean bbbox",
     "commit": "git-cz",
-    "start": "sudo service docker start && yarn sandbox:start -- carthage"
+    "start": "sudo service docker start; ganache-cli --flavor tezos --seed alice > /dev/null 2>&1 &",
+    "start-with-debugging": "sudo service docker start; ganache-cli --flavor tezos --seed alice"
   },
   "author": "matej.sima@stove-labs.com",
   "license": "MIT",
