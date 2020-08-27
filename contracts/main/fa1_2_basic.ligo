@@ -19,7 +19,7 @@ function transfer_allowed(const from_ : address ; const to_ : address ; const st
 function main (const p : action ; const s : storage) :
   (list(operation) * storage) is
  block {
-   // Reject any transaction that try to transfer token to this contract
+   // Reject any transaction that tries to transfer token to this contract
    if amount =/= 0tz then failwith ("This contract does not accept tezi deposits");
    else skip;
   } with case p of
