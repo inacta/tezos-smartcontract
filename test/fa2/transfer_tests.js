@@ -169,7 +169,7 @@ contract('fa2_wl', (_accounts) => {
                 )
             );
 
-            expectThrow(
+            await expectThrow(
                 fa2_wl_instance.transfer(
                     transferParams([{ from: bob, to: [[alice, amount]] }])
                 ),
