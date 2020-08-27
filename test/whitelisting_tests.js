@@ -7,7 +7,7 @@ const constants = require('./../helpers/constants.js');
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.
  */
-const { alice, bob, charlie } = require('./../scripts/sandbox/accounts');
+const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
 const {
     addWhitelisters,
     addWhitelisteds,
@@ -21,6 +21,7 @@ contract('fa2_wl', (_accounts) => {
     let storage;
     let fa2_wl_instance;
     let fa2_wl_wrapper_instance;
+    let accounts;
 
     before(async () => {
         fa2_wl_instance = await fa2_wl.deployed();
@@ -46,14 +47,16 @@ contract('fa2_wl', (_accounts) => {
                 0,
                 'initial whitelisters list must be empty'
             );
-            assert.equal(
-                storage.whitelisteds.length,
-                0,
-                'initial whitelisteds list must be empty'
-            );
+
+            accounts = [alice, bob, charlie, david];
+            for (var i = 0; i < accounts.length; i++) {
+                const val = await storage.whitelisteds.get(accounts[i].pkh);
+                assert(val === undefined || val.length === 0, `${accounts[i].name} is not whitelisted initially`);
+            }
             await fa2_wl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
+
             // This is necessary, so alice can update whitelisteds
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
             await fa2_wl_instance.update_whitelisteds(
@@ -73,12 +76,11 @@ contract('fa2_wl', (_accounts) => {
                 0,
                 'initial whitelisters list must be empty'
             );
-            assert.equal(
-                storage.whitelisteds.length,
-                0,
-                'initial whitelisteds list must be empty'
-            );
-
+            accounts = [alice, bob, charlie, david];
+            for (var i = 0; i < accounts.length; i++) {
+                const val = await storage.whitelisteds.get(accounts[i].pkh);
+                assert(val === undefined || val.length === 0, `${accounts[i].name} is not whitelisted initially`);
+            }
             // Verify that Alice cannot add Bob as whitelisted since Alice is not whitelister
             await expectThrow(
                 fa2_wl_instance.update_whitelisteds(addWhitelisteds([bob])),
@@ -90,30 +92,35 @@ contract('fa2_wl', (_accounts) => {
                 0,
                 'whitelisters list must be empty since call to add failed'
             );
-            assert.equal(
-                storage.whitelisteds.length,
-                0,
-                'whitelisteds list must be empty since call to add failed'
-            );
+            for (var i = 0; i < accounts.length; i++) {
+                const val = await storage.whitelisteds.get(accounts[i].pkh);
+                assert(val === undefined || val.length === 0, `${accounts[i].name} is not whitelisted after failed call to whitelist`);
+            }
 
             // Add Alice as Whitelister and verify that she can now add Bob as whitelisted
             await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
             await fa2_wl_instance.update_whitelisteds(addWhitelisteds([bob]));
             storage = await fa2_wl_instance.storage();
-            assert.equal(
-                storage.whitelisteds.length,
-                1,
-                'whitelisted list must now have one element'
-            );
+            accounts = [alice, charlie, david];
+            for (var i = 0; i < accounts.length; i++) {
+                const val = await storage.whitelisteds.get(accounts[i].pkh);
+                assert(val === undefined || val.length === 0, `${accounts[i].name} is not whitelisted after successful call to whitelist Bob`);
+            }
+            assert.notEqual((await storage.whitelisteds.get(bob.pkh)).length, 0, 'Bob is whitelisted after succesful call to whitelist');
             assert.equal(
                 storage.whitelisters.length,
                 1,
                 'whitelister list must now have one element'
             );
             assert.equal(
-                storage.whitelisteds[0],
-                bob.pkh,
-                'Bob must be added as whitelisted'
+                (await storage.whitelisteds.get(bob.pkh)).length,
+                1,
+                'Bob must be added as whitelisted for one asset'
+            );
+            assert.equal(
+                (await storage.whitelisteds.get(bob.pkh))[0],
+                0,
+                'Bob must be added as whitelisted for asset with token_id = 0'
             );
 
             // Verify that whitelisteds can be removed again
@@ -121,27 +128,21 @@ contract('fa2_wl', (_accounts) => {
                 removeWhitelisteds([bob])
             );
             storage = await fa2_wl_instance.storage();
-            assert.equal(
-                storage.whitelisteds.length,
-                0,
-                'whitelisted list must now be empty again'
-            );
-            assert.equal(
-                storage.whitelisters.length,
-                1,
-                'whitelister list must still have one element'
-            );
+            accounts = [alice, bob, charlie, david];
+            for (var i = 0; i < accounts.length; i++) {
+                const val = await storage.whitelisteds.get(accounts[i].pkh);
+                assert(val === undefined || val.length === 0, `${accounts[i].name} is not whitelisted after successful call to remove Bob from whitelisteds`);
+            }
 
             // Remove whitelister again to restore state, as it keeps interfering with later tests
             await fa2_wl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
             storage = await fa2_wl_instance.storage();
-            assert.equal(
-                storage.whitelisteds.length,
-                0,
-                'whitelisted list must still be empty'
-            );
+            for (var i = 0; i < accounts.length; i++) {
+                const val = await storage.whitelisteds.get(accounts[i].pkh);
+                assert(val === undefined || val.length === 0, `${accounts[i].name} is not whitelisted after successful call to remove Alice as whitelister`);
+            }
             assert.equal(
                 storage.whitelisters.length,
                 0,
@@ -225,13 +226,13 @@ contract('fa2_wl', (_accounts) => {
             );
 
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0')
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0')
                 )
             );
 
@@ -243,13 +244,13 @@ contract('fa2_wl', (_accounts) => {
             );
 
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0')
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0')
                 )
             );
 
@@ -264,13 +265,13 @@ contract('fa2_wl', (_accounts) => {
             );
 
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0')
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0')
                 )
             );
 
@@ -278,13 +279,13 @@ contract('fa2_wl', (_accounts) => {
             await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice]));
             await fa2_wl_instance.transfer(transferParamSingle);
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance.minus(1)
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0').minus(1)
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance.plus(1)
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0').plus(1)
                 )
             );
 
@@ -295,13 +296,13 @@ contract('fa2_wl', (_accounts) => {
                 constants.contractErrors.receiverNotWhitelisted
             );
             assert(
-                (await storage.ledger.get(alice.pkh)).balance.isEqualTo(
-                    aliceAccountStart.balance.minus(1)
+                (await storage.ledger.get(alice.pkh)).balances.get('0').isEqualTo(
+                    aliceAccountStart.balances.get('0').minus(1)
                 )
             );
             assert(
-                (await storage.ledger.get(bob.pkh)).balance.isEqualTo(
-                    bobAccountStart.balance.plus(1)
+                (await storage.ledger.get(bob.pkh)).balances.get('0').isEqualTo(
+                    bobAccountStart.balances.get('0').plus(1)
                 )
             );
 
@@ -313,6 +314,82 @@ contract('fa2_wl', (_accounts) => {
                 removeWhitelisters([alice])
             );
         });
+    });
+
+    describe('whitelisting for multi-asset functionality', () => {
+        it('Can be whitelisted for different assets', async () => {
+            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice], 0));
+            storage = await fa2_wl_instance.storage();
+            var whitelistingVal = (await storage.whitelisteds.get(alice.pkh)).map( x => x.toNumber() );
+            assert.equal(
+                whitelistingVal.length,
+                1,
+                'Alice must be added as whitelisted for asset with token_id = 0'
+            );
+            assert.equal(
+                whitelistingVal[0],
+                0,
+                'Alice must be added as whitelisted for asset with token_id = 0'
+            );
+
+            // Add whitelisting for token_id = 1 and verify storage update
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice], 1));
+            whitelistingVal = (await storage.whitelisteds.get(alice.pkh)).map( x => x.toNumber() );
+            assert.equal(
+                whitelistingVal.length,
+                2,
+                'Alice must be added as whitelisted for two assets'
+            );
+            assert(
+                whitelistingVal.includes(0) && whitelistingVal.includes(1),
+                'Alice must be added as whitelisted for asset with token_id = 0 and token_id = 1'
+            );
+
+            // Add Alice as whitelisted again and verify that this is idempotent operation
+            // when applied for same asset
+            // Add whitelisting for token_id = 1 and verify storage update
+            await fa2_wl_instance.update_whitelisteds(addWhitelisteds([alice], 1));
+            whitelistingVal = (await storage.whitelisteds.get(alice.pkh)).map( x => x.toNumber() );
+            assert.equal(
+                whitelistingVal.length,
+                2,
+                'Alice must be added as whitelisted two assets'
+            );
+            assert(
+                whitelistingVal.includes(0) && whitelistingVal.includes(1),
+                'Alice must still be added as whitelisted for asset with token_id = 0 and token_id = 1'
+            );
+
+            // Remove Alice from whitelisteds for token_id = 0
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice], 0)
+            );
+            whitelistingVal = (await storage.whitelisteds.get(alice.pkh)).map( x => x.toNumber() );
+            assert.equal(
+                whitelistingVal.length,
+                1,
+                'Alice must be added as whitelisted for one asset'
+            );
+            assert.equal(
+                whitelistingVal[0],
+                1,
+                'Alice must be added as whitelisted for asset with token_id = 1'
+            );
+
+            // Remove Alice from whitelisteds for token_id = 1,
+            // and verify that this is also a idempotent operation
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice], 1)
+            );
+            whitelistingVal = (await storage.whitelisteds.get(alice.pkh)).map( x => x.toNumber() );
+            assert(whitelistingVal === undefined || whitelistingVal.length === 0, `Alice is no longer whitelisted`);
+            await fa2_wl_instance.update_whitelisteds(
+                removeWhitelisteds([alice], 1)
+            );
+            whitelistingVal = (await storage.whitelisteds.get(alice.pkh)).map( x => x.toNumber() );
+            assert(whitelistingVal === undefined || whitelistingVal.length === 0, `Alice is still not whitelisted`);
+        })
     });
 
     // We run this test last since it tends to mess up the state of the contract

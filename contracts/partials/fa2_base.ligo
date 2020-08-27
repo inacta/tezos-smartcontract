@@ -8,7 +8,7 @@ function get_account (const addr : address; const storage : storage) : account i
   block {
     var acct : account :=
       record [
-        balance = 0n;
+        balances = ((map []): map(token_id, nat));
         allowances = (set []: set(address));
       ];
     case storage.ledger[addr] of
@@ -53,20 +53,26 @@ end with ((nil: list(operation)), storage);
 
 
 (***** BALANCE_OF *****)
-function account_balance_with_default_nat(const account_option: option(account); const default: nat) : nat is
+function account_balance_with_default_nat(const account_option: option(account); const token_id: token_id; const default: nat) : nat is
     case account_option of
-        | Some(value) -> value.balance
+        | Some(acc) -> case acc.balances[token_id] of
+            | Some(balance_) -> balance_
+            | None -> default
+            end
         | None -> default
-end;
+    end;
 
 const default_token_balance: token_balance = 0n;
-function get_token_balance (var token_id: token_id; var token_owner: token_owner; var storage: storage) : token_balance is
+function get_token_balance (const token_id: token_id; const token_owner: token_owner; const storage: storage) : token_balance is
 begin
-    if token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
+    const unit_value: unit = case storage.token_metadata[token_id] of
+        | Some(tm) -> Unit
+        | None -> failwith("FA2_TOKEN_UNDEFINED")
+    end;
+
     const ledger: ledger = storage.ledger;
-    const token_lookup_id: token_lookup_id = token_owner; // If token should handle multiple assets, change to tuple (token_id, token_owner)
-    const account: option(account) = Map.find_opt(token_lookup_id, ledger);
-    const token_balance: token_balance = account_balance_with_default_nat(account, default_token_balance);
+    const account: option(account) = Map.find_opt(token_owner, ledger);
+    const token_balance: token_balance = account_balance_with_default_nat(account, token_id, default_token_balance);
 end with token_balance;
 
 type balance_of_requests_iterator_accumulator is (list(balance_of_response_michelson) * storage);
@@ -123,20 +129,27 @@ begin
             const unit_value: unit = is_allowed(from_, storage);
 
             const transfer_to : transfer_to = Layout.convert_from_right_comb(transfer_to_michelson);
-            if transfer_to.token_id =/= 0n then failwith("FA2_TOKEN_UNDEFINED") else skip; // This token contract only supports a single, fungible asset
 
-            const unit_value: unit = transfer_allowed(from_, transfer_to.to_, storage);
+            const unit_value: unit = transfer_allowed(from_, transfer_to.to_, transfer_to.token_id, storage);
 
+            // get_token_balance throws if token_id is not registered in this contract
             const sender_balance: nat = get_token_balance(transfer_to.token_id, from_, storage);
             if sender_balance < transfer_to.amount then failwith("FA2_INSUFFICIENT_BALANCE") else skip;
 
             (* Update the ledger accordingly *)
             var sender_account := get_account(from_, storage);
-            sender_account.balance := abs(sender_account.balance - transfer_to.amount);
+            sender_account.balances[transfer_to.token_id] := abs(sender_balance - transfer_to.amount);
+
+            // In case we are sending to self, we must update sender balance before fetching recipient balance
             storage.ledger[from_] := sender_account;
+
             var recipient_account : account := get_account(transfer_to.to_, storage);
-            recipient_account.balance := recipient_account.balance + transfer_to.amount;
+            recipient_account.balances[transfer_to.token_id] := case recipient_account.balances[transfer_to.token_id] of
+                | None -> transfer_to.amount
+                | Some (previous_balance) -> previous_balance + transfer_to.amount
+            end;
             storage.ledger[transfer_to.to_] := recipient_account;
+
         end with (storage, from_);
 
     function outer_transfer_iterator (var storage : storage; const transfer_from_michelson : transfer_from_michelson) : storage

@@ -15,7 +15,7 @@ type storage is record
 end;
 
 // No additional checks are imposed here
-function transfer_allowed(const from_ : address ; const to_ : address ; const storage : storage) : unit is Unit;
+function transfer_allowed(const from_ : address ; const to_ : address ; const token_id: token_id; const storage : storage) : unit is Unit;
 
 #include "../partials/fa2_base.ligo"
 
