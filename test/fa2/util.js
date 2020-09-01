@@ -1,7 +1,3 @@
-function addWhitelisters(addresses) {
-    return args(addresses, 'add_whitelister');
-}
-
 function addWhitelisteds(accounts, token_id = 0) {
     return accounts.map(account => {
         return {
@@ -13,10 +9,6 @@ function addWhitelisteds(accounts, token_id = 0) {
     });
 }
 
-function removeWhitelisters(addresses) {
-    return args(addresses, 'remove_whitelister');
-}
-
 function removeWhitelisteds(accounts, token_id = 0) {
     return accounts.map(account => {
         return {
@@ -25,12 +17,6 @@ function removeWhitelisteds(accounts, token_id = 0) {
                 address: account.pkh,
             }
         }
-    });
-}
-
-function args(addresses, field) {
-    return addresses.map(function (x) {
-        return { [field]: x.pkh };
     });
 }
 
@@ -46,9 +32,7 @@ function transferParams(transfers, token_id = 0) {
 }
 
 module.exports = {
-    addWhitelisters,
     addWhitelisteds,
-    removeWhitelisters,
     removeWhitelisteds,
     transferParams,
 };

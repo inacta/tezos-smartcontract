@@ -10,13 +10,14 @@ const constants = require('../../helpers/fa2Constants.js');
  */
 const { alice, bob, david } = require('../../scripts/sandbox/accounts');
 const {
-    addWhitelisters,
     addWhitelisteds,
-    removeWhitelisters,
     removeWhitelisteds,
     transferParams,
 } = require('./util.js');
-const { expectThrow } = require("../shared_utils.js");
+const {
+    addWhitelisters,
+    expectThrow,
+    removeWhitelisters } = require("../shared_utils.js");
 
 contract('fa2_wl', (_accounts) => {
     let storage;

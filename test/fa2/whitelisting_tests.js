@@ -10,17 +10,20 @@ const constants = require('../../helpers/fa2Constants.js');
  */
 const { alice, bob, charlie, david } = require('./../../scripts/sandbox/accounts');
 const {
-    addWhitelisters,
     addWhitelisteds,
-    removeWhitelisters,
     removeWhitelisteds,
     transferParams,
 } = require('./util.js');
 
-const { expectThrow } = require("../shared_utils.js");
+const {
+    addWhitelisters,
+    expectThrow,
+    removeWhitelisters,
+ } = require("../shared_utils.js");
 
 contract('fa2_wl', (_accounts) => {
     let storage;
+    let wrapper_storage;
     let fa2_wl_instance;
     let fa2_wl_wrapper_instance;
     let accounts;
@@ -150,48 +153,6 @@ contract('fa2_wl', (_accounts) => {
                 0,
                 'whitelister list must now be empty'
             );
-        });
-    });
-
-    describe('whitelisters', () => {
-        it('whitelist admins should be able to add whitelister', async () => {
-            storage = await fa2_wl_instance.storage();
-            assert.equal(
-                storage.whitelisters.length,
-                0,
-                'initial whitelisters list must be empty'
-            );
-
-            // Add Bob as whitelister and verify that this works
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([bob]));
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.whitelisters.length, 1);
-            assert.equal(storage.whitelisters[0], bob.pkh);
-
-            // Add self and bob as whitelister in one call and verify that this works
-            await fa2_wl_instance.update_whitelisters(
-                addWhitelisters([alice, bob])
-            );
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.whitelisters.length, 2);
-            assert(storage.whitelisters.includes(bob.pkh));
-            assert(storage.whitelisters.includes(alice.pkh));
-
-            // Add Bob and Alice again and verify that nothing changes
-            await fa2_wl_instance.update_whitelisters(
-                addWhitelisters([alice, bob])
-            );
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.whitelisters.length, 2);
-            assert(storage.whitelisters.includes(bob.pkh));
-            assert(storage.whitelisters.includes(alice.pkh));
-
-            // Remove Alice and Bob and verify that this works
-            await fa2_wl_instance.update_whitelisters(
-                removeWhitelisters([alice, bob])
-            );
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.whitelisters.length, 0);
         });
     });
 
@@ -392,68 +353,5 @@ contract('fa2_wl', (_accounts) => {
             whitelistingVal = (await storage.whitelisteds.get(alice.pkh)).map( x => x.toNumber() );
             assert(whitelistingVal === undefined || whitelistingVal.length === 0, `Alice is still not whitelisted`);
         })
-    });
-
-    // We run this test last since it tends to mess up the state of the contract
-    // leaving our caller Alice without WL admin rights.
-    describe('non-revocable whitelist admin', () => {
-        it('can update non-revocable whitelist admin', async () => {
-            // Verify that Alice cannot renounce her WL admin role as she is non-revocable WL admin
-            await expectThrow(
-                fa2_wl_instance.renounce_wl_admin([['unit']]),
-                constants.contractErrors.callerIsNonRevocableWlAdmin
-            );
-
-            // Disallow setting Bob as New non-revocable whitelist admin since Bob is not whitelisting admin
-            assert.equal(alice.pkh, storage.non_revocable_whitelist_admin);
-            await expectThrow(
-                fa2_wl_instance.set_non_revocable_wl_admin(bob.pkh),
-                constants.contractErrors.newNrWlAdminNotWlAdmin
-            );
-            assert.equal(alice.pkh, storage.non_revocable_whitelist_admin);
-
-            // Set Bob to be WL admin and verify that storage is updated correctly
-            await fa2_wl_instance.add_wl_admin(bob.pkh);
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.whitelist_admins.length, 2);
-            assert.equal(storage.non_revocable_whitelist_admin, alice.pkh);
-            assert(storage.whitelist_admins.includes(bob.pkh));
-            assert(storage.whitelist_admins.includes(alice.pkh));
-
-            // Verify that Bob can now take the non-revocable role and that alice is *not* removed as a whitelist admin
-            // even though she gave up the non-revocable role
-            await fa2_wl_instance.set_non_revocable_wl_admin(bob.pkh);
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.non_revocable_whitelist_admin, bob.pkh);
-            assert.equal(storage.whitelist_admins.length, 2);
-            assert(storage.whitelist_admins.includes(bob.pkh));
-            assert(storage.whitelist_admins.includes(alice.pkh));
-
-            // Ensure that the correct error message is presented when anyone else but the non-revocable WL admin attempts to
-            // pass this role on
-            await expectThrow(
-                fa2_wl_instance.set_non_revocable_wl_admin(bob.pkh),
-                constants.contractErrors.notNrWlAdmin
-            );
-
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.non_revocable_whitelist_admin, bob.pkh);
-            assert.equal(storage.whitelist_admins.length, 2);
-            assert(storage.whitelist_admins.includes(bob.pkh));
-            assert(storage.whitelist_admins.includes(alice.pkh));
-
-            // Verify that Alice can now renounce her WL admin role
-            await fa2_wl_instance.renounce_wl_admin([['unit']]);
-            storage = await fa2_wl_instance.storage();
-            assert.equal(storage.non_revocable_whitelist_admin, bob.pkh);
-            assert.equal(storage.whitelist_admins.length, 1);
-            assert(storage.whitelist_admins.includes(bob.pkh));
-            assert(!storage.whitelist_admins.includes(alice.pkh));
-
-            // Unfortunately, we have to redeploy the contract here to restore state
-            // Otherwise Bob is WL admin and Alice is not and we need Alice as WL admin
-            // for other tests
-            fa2_wl_instance = await fa2_wl.deployed();
-        });
     });
 });

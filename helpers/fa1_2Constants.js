@@ -10,5 +10,8 @@ module.exports = {
         insufficientBalance: 'NotEnoughBalance',
         insufficientAllowance: 'NotEnoughAllowance',
         unsafeAllowanceChange: 'UnsafeAllowanceChange',
+        senderNotWhiteListed: 'SENDER_NOT_WHITELISTED',
+        receiverNotWhiteListed: 'RECEIVER_NOT_WHITELISTED',
+        onlyWlrCanAddWld: 'ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS',
     },
 };
