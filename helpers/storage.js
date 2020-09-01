@@ -108,7 +108,7 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
         [`1`]: asset_description_1,
     });
     const empty_whitelisteds = MichelsonMap.fromLiteral({});
-    const initial_storage_fa2_wl = {
+    const initial_storage_fa2_pwl = {
         ledger: initial_ledger,
         token_metadata: token_metadata,
         whitelisteds: empty_whitelisteds,
@@ -117,7 +117,7 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
         non_revocable_whitelist_admin: alice.pkh,
     };
 
-    module.exports.initial_storage_fa2_wl = initial_storage_fa2_wl;
+    module.exports.initial_storage_fa2_pwl = initial_storage_fa2_pwl;
 }
 
 {

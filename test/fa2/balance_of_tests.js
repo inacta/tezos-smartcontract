@@ -1,4 +1,4 @@
-const fa2_wl = artifacts.require('fa2_with_whitelisting');
+const fa2_pwl = artifacts.require('fa2_with_particular_whitelisting');
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 const constants = require('../../helpers/fa2Constants.js');
 const { expectThrow } = require('./../shared_utils.js');
@@ -10,25 +10,25 @@ const initial_storage = require('./../../helpers/storage');
  */
 const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');
 
-contract('fa2_wl', (_accounts) => {
+contract('fa2_pwl', (_accounts) => {
     let storage;
     let wrapper_storage;
-    let fa2_wl_instance;
+    let fa2_pwl_instance;
     let fa2_wl_wrapper_instance;
 
     before(async () => {
-        fa2_wl_instance = await fa2_wl.new(initial_storage.initial_storage_fa2_wl);
+        fa2_pwl_instance = await fa2_pwl.new(initial_storage.initial_storage_fa2_pwl);
         fa2_wl_wrapper_instance = await fa2_wl_wrapper.new(initial_storage.initial_storage_fa2_wl_wrapper);
 
         /**
          * Display the current contract address for debugging purposes
          */
-        console.log('Contract deployed at:', fa2_wl_instance.address);
+        console.log('Contract deployed at:', fa2_pwl_instance.address);
         console.log(
             'Wrapper contract deployed at:',
             fa2_wl_wrapper_instance.address
         );
-        storage = await fa2_wl_instance.storage();
+        storage = await fa2_pwl_instance.storage();
         wrapper_storage = await fa2_wl_wrapper_instance.storage();
     });
 
@@ -37,7 +37,7 @@ contract('fa2_wl', (_accounts) => {
             // call with empty request to clear storage of wrapper contract
             requests = [];
             await fa2_wl_wrapper_instance.call_balance_of(
-                fa2_wl_instance.address,
+                fa2_pwl_instance.address,
                 requests
             );
             var wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -50,7 +50,7 @@ contract('fa2_wl', (_accounts) => {
             var requests = requests = [{ owner: alice.pkh, token_id: 2 }];
             await expectThrow(
                 fa2_wl_wrapper_instance.call_balance_of(
-                    fa2_wl_instance.address,
+                    fa2_pwl_instance.address,
                     requests
                 ),
                 constants.contractErrors.unknownTokenId
@@ -65,7 +65,7 @@ contract('fa2_wl', (_accounts) => {
             // succeed when token_id is known
             requests = [{ owner: alice.pkh, token_id: 1 }];
             await fa2_wl_wrapper_instance.call_balance_of(
-                fa2_wl_instance.address,
+                fa2_pwl_instance.address,
                 requests
             );
             wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -78,7 +78,7 @@ contract('fa2_wl', (_accounts) => {
             // call with empty request to clear storage of wrapper contract
             requests = [];
             await fa2_wl_wrapper_instance.call_balance_of(
-                fa2_wl_instance.address,
+                fa2_pwl_instance.address,
                 requests
             );
             wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -99,7 +99,7 @@ contract('fa2_wl', (_accounts) => {
 
             var requests = [];
             await fa2_wl_wrapper_instance.call_balance_of(
-                fa2_wl_instance.address,
+                fa2_pwl_instance.address,
                 requests
             );
             wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -112,7 +112,7 @@ contract('fa2_wl', (_accounts) => {
                 // Verify Alice's balance
                 requests = [{ owner: alice.pkh, token_id }];
                 await fa2_wl_wrapper_instance.call_balance_of(
-                    fa2_wl_instance.address,
+                    fa2_pwl_instance.address,
                     requests
                 );
                 wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -125,7 +125,7 @@ contract('fa2_wl', (_accounts) => {
                 // Verify Bob's balance
                 requests[0].owner = bob.pkh;
                 await fa2_wl_wrapper_instance.call_balance_of(
-                    fa2_wl_instance.address,
+                    fa2_pwl_instance.address,
                     requests
                 );
                 wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -138,7 +138,7 @@ contract('fa2_wl', (_accounts) => {
                 // Verify Charlie's balance
                 requests[0].owner = charlie.pkh;
                 await fa2_wl_wrapper_instance.call_balance_of(
-                    fa2_wl_instance.address,
+                    fa2_pwl_instance.address,
                     requests
                 );
                 wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -151,7 +151,7 @@ contract('fa2_wl', (_accounts) => {
                 // Verify David's balance
                 requests[0].owner = david.pkh;
                 await fa2_wl_wrapper_instance.call_balance_of(
-                    fa2_wl_instance.address,
+                    fa2_pwl_instance.address,
                     requests
                 );
                 wrapper_storage = await fa2_wl_wrapper_instance.storage();
@@ -166,7 +166,7 @@ contract('fa2_wl', (_accounts) => {
                     { owner: bob.pkh, token_id },
                 ];
                 await fa2_wl_wrapper_instance.call_balance_of(
-                    fa2_wl_instance.address,
+                    fa2_pwl_instance.address,
                     requests
                 );
                 wrapper_storage = await fa2_wl_wrapper_instance.storage();

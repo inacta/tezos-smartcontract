@@ -1,5 +1,5 @@
 const BigNumber = require('bignumber.js');
-const fa2_wl = artifacts.require('fa2_with_whitelisting');
+const fa2_pwl = artifacts.require('fa2_with_particular_whitelisting');
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 const initial_storage = require('./../../helpers/storage');
 const constants = require('../../helpers/fa2Constants.js');
@@ -19,24 +19,24 @@ const {
     expectThrow,
     removeWhitelisters } = require("../shared_utils.js");
 
-contract('fa2_wl', (_accounts) => {
+contract('fa2_pwl', (_accounts) => {
     let storage;
-    let fa2_wl_instance;
+    let fa2_pwl_instance;
     let fa2_wl_wrapper_instance;
 
     before(async () => {
-        fa2_wl_instance = await fa2_wl.new(initial_storage.initial_storage_fa2_wl);
+        fa2_pwl_instance = await fa2_pwl.new(initial_storage.initial_storage_fa2_pwl);
         fa2_wl_wrapper_instance = await fa2_wl_wrapper.new(initial_storage.initial_storage_fa2_wl_wrapper);
 
         /**
          * Display the current contract address for debugging purposes
          */
-        console.log('Contract deployed at:', fa2_wl_instance.address);
+        console.log('Contract deployed at:', fa2_pwl_instance.address);
         console.log(
             'Wrapper contract deployed at:',
             fa2_wl_wrapper_instance.address
         );
-        storage = await fa2_wl_instance.storage();
+        storage = await fa2_pwl_instance.storage();
         wrapper_storage = await fa2_wl_wrapper_instance.storage();
     });
 
@@ -61,7 +61,7 @@ contract('fa2_wl', (_accounts) => {
 
         it('should allow transfer requests with empty list as input', async () => {
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
-            await fa2_wl_instance.transfer(transferParams([]));
+            await fa2_pwl_instance.transfer(transferParams([]));
             const accountAliceAfter = await storage.ledger.get(alice.pkh);
 
         });
@@ -72,14 +72,14 @@ contract('fa2_wl', (_accounts) => {
 
             // Add Alice and Bob to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob])
             );
 
             // Verify that transactions with 0 amount are possible, and that they
             // do not affect balances (part of FA2 spec that this must pass)
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[bob, 0]] }])
             );
             var accountBobAfter = await storage.ledger.get(bob.pkh);
@@ -91,7 +91,7 @@ contract('fa2_wl', (_accounts) => {
 
             // Verify that Alice can send to herself. It is a part of the FA2 spec
             // that this must pass. Verify this for both 0 amount and 1 amount
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[alice, 0]] }])
             );
             accountBobAfter = await storage.ledger.get(bob.pkh);
@@ -101,7 +101,7 @@ contract('fa2_wl', (_accounts) => {
             );
             assert(accountBobAfter.balances.get('0').isEqualTo(accountBobBefore.balances.get('0')));
 
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[alice, 1]] }])
             );
 
@@ -115,7 +115,7 @@ contract('fa2_wl', (_accounts) => {
 
             // Verify that 1 token can be transferred from Alice to Bob
             const amount = 1;
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[bob, amount]] }])
             );
             var accountBobAfter = await storage.ledger.get(bob.pkh);
@@ -134,10 +134,10 @@ contract('fa2_wl', (_accounts) => {
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob])
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });
@@ -145,8 +145,8 @@ contract('fa2_wl', (_accounts) => {
         it('should not allow transfers from an address that did not sign the transaction and that has not been made operator', async () => {
             // Add Alice and Bob to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob])
             );
 
@@ -171,7 +171,7 @@ contract('fa2_wl', (_accounts) => {
             );
 
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([{ from: bob, to: [[alice, amount]] }])
                 ),
                 constants.contractErrors.notOperator
@@ -186,10 +186,10 @@ contract('fa2_wl', (_accounts) => {
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob])
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });
@@ -199,8 +199,8 @@ contract('fa2_wl', (_accounts) => {
 
             // Add Alice, Bob and David to whitelisteds. Since the transactions originate from Alice's address,
             // she must first add herself as whitelister so she can whitelist herself and whitelist Bob.
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob, david])
             );
 
@@ -208,7 +208,7 @@ contract('fa2_wl', (_accounts) => {
             var accountDavid = await storage.ledger.get(david.pkh);
             assert(accountDavid.balances.get('0').isEqualTo(new BigNumber(2)));
             // Alice's balance at this point is 9
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: david, to: [[alice, 1]] }])
             );
             accountDavid = await storage.ledger.get(david.pkh);
@@ -216,7 +216,7 @@ contract('fa2_wl', (_accounts) => {
 
             // Transfer 1 from David to Bob
             accountDavid = await storage.ledger.get(david.pkh);
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: david, to: [[bob, 1]] }])
             );
             accountDavid = await storage.ledger.get(david.pkh);
@@ -224,36 +224,36 @@ contract('fa2_wl', (_accounts) => {
 
             // Disallow another transaction since David's balance is now 0
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([{ from: david, to: [[bob, 1]] }])
                 ),
                 constants.contractErrors.insufficientBalance
             );
 
             // Transfer back some coins for test below
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[david, 1]] }])
             );
 
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob, david])
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });
 
         it('multi-transfer should succeed if balance is sufficient or else fail completely', async () => {
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob, david])
             );
             let accountBobBefore = await storage.ledger.get(bob.pkh);
             let accountAliceBefore = await storage.ledger.get(alice.pkh);
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([
                     {
                         from: alice,
@@ -277,7 +277,7 @@ contract('fa2_wl', (_accounts) => {
                 )
             );
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([
                         {
                             from: alice,
@@ -291,7 +291,7 @@ contract('fa2_wl', (_accounts) => {
                 constants.contractErrors.insufficientBalance
             );
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([
                         {
                             from: alice,
@@ -318,23 +318,23 @@ contract('fa2_wl', (_accounts) => {
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob, david])
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });
 
         it('outer-multi-transfer should succeed if balance is sufficient or else fail completely', async () => {
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob, david])
             );
             let accountAliceBefore = await storage.ledger.get(alice.pkh);
             let accountBobBefore = await storage.ledger.get(bob.pkh);
             let accountDavidBefore = await storage.ledger.get(david.pkh);
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([
                     {
                         from: alice,
@@ -369,7 +369,7 @@ contract('fa2_wl', (_accounts) => {
                 )
             );
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([
                         {
                             from: alice,
@@ -388,7 +388,7 @@ contract('fa2_wl', (_accounts) => {
                 constants.contractErrors.insufficientBalance
             );
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([
                         {
                             from: alice,
@@ -424,31 +424,31 @@ contract('fa2_wl', (_accounts) => {
             // Remove Alice and Bob from whitelisted. This must be done in the opposite
             // order of how they were added
             // Done to keep state of test runtime unaffected from this test
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob, david])
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });
 
         it("should not transfer tokens from Alice to Bob when Alice's balance is insufficient", async () => {
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob])
             );
 
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
             const accountBobBefore = await storage.ledger.get(bob.pkh);
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([{ from: alice, to: [[bob, 100]] }])
                 ),
                 constants.contractErrors.insufficientBalance
             );
 
             // Change amount and verify that it works
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[bob, 1]] }])
             );
             var accountAliceAfter = await storage.ledger.get(alice.pkh);
@@ -476,30 +476,30 @@ contract('fa2_wl', (_accounts) => {
                 )
             );
 
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob])
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });
 
         it('should disallow transfers of unrecognized tokens', async () => {
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
 
             // Whitelist Alice and Bob for all relevant tokens
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob], 2)
             );
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob], 1)
             );
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob], 0)
             );
 
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([{ from: alice, to: [[bob, 1]] }], 2)
                 ),
                 constants.contractErrors.unknownTokenId
@@ -508,7 +508,7 @@ contract('fa2_wl', (_accounts) => {
             // Verify that transfers of token_id = 1 works since this is a registered asset in the contract
             const accountAliceBefore = await storage.ledger.get(alice.pkh);
             const accountBobBefore = await storage.ledger.get(bob.pkh);
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[bob, 1]] }], 1)
             );
 
@@ -536,7 +536,7 @@ contract('fa2_wl', (_accounts) => {
             );
 
             // Transfer 2 units and verify that this also works
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[bob, 2]] }], 1)
             );
             accountAliceAfter = await storage.ledger.get(alice.pkh);
@@ -563,7 +563,7 @@ contract('fa2_wl', (_accounts) => {
             // Transfer more than is available and verify that this is not possible
             // and that this does not affect balances
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([{ from: alice, to: [[bob, 4], [bob, 4]] }], 1)
                 ),
                 constants.contractErrors.insufficientBalance
@@ -590,25 +590,25 @@ contract('fa2_wl', (_accounts) => {
             );
 
             // Remove Alice and Bob from the tokens for which they were whitelisted
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob], 0)
             );
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob], 1)
             );
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob], 2)
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });
 
         it('should not allow transfer when whitelisted for wrong token_id', async () => {
-            await fa2_wl_instance.update_whitelisters(addWhitelisters([alice]));
+            await fa2_pwl_instance.update_whitelisters(addWhitelisters([alice]));
 
             // Whitelist Alice and Bob for token_id = 1, attempt to transfer token_id = 0
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob], 1)
             );
 
@@ -616,7 +616,7 @@ contract('fa2_wl', (_accounts) => {
             const accountBobBefore = await storage.ledger.get(bob.pkh);
 
             await expectThrow(
-                fa2_wl_instance.transfer(
+                fa2_pwl_instance.transfer(
                     transferParams([{ from: alice, to: [[bob, 1]] }], 0)
                 ),
                 constants.contractErrors.senderNotWhitelisted
@@ -646,7 +646,7 @@ contract('fa2_wl', (_accounts) => {
             );
 
             // Transfer 1 unit of token_id = 1 and verify that this works
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[bob, 1]] }], 1)
             );
             accountAliceAfter = await storage.ledger.get(alice.pkh);
@@ -671,10 +671,10 @@ contract('fa2_wl', (_accounts) => {
             );
 
             // Whitelist Alice and Bob for token_id = 0, and verify that transfer of token_id = 0 is now allowed
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 addWhitelisteds([alice, bob], 0)
             );
-            await fa2_wl_instance.transfer(
+            await fa2_pwl_instance.transfer(
                 transferParams([{ from: alice, to: [[bob, 1]] }], 0)
             );
             accountAliceAfter = await storage.ledger.get(alice.pkh);
@@ -699,13 +699,13 @@ contract('fa2_wl', (_accounts) => {
             );
 
             // Reset whitelisteds value
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob], 1)
             );
-            await fa2_wl_instance.update_whitelisteds(
+            await fa2_pwl_instance.update_whitelisteds(
                 removeWhitelisteds([alice, bob], 0)
             );
-            await fa2_wl_instance.update_whitelisters(
+            await fa2_pwl_instance.update_whitelisters(
                 removeWhitelisters([alice])
             );
         });

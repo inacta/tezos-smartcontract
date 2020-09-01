@@ -1,4 +1,4 @@
-const fa2_wl = artifacts.require('fa2_with_whitelisting');
+const fa2_pwl = artifacts.require('fa2_with_particular_whitelisting');
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
 const initial_storage = require('./../../helpers/storage');
 
@@ -8,25 +8,25 @@ const initial_storage = require('./../../helpers/storage');
  */
 const { bob } = require('../../scripts/sandbox/accounts');
 
-contract('fa2_wl', (_accounts) => {
+contract('fa2_pwl', (_accounts) => {
     let storage;
     let wrapper_storage;
-    let fa2_wl_instance;
+    let fa2_pwl_instance;
     let fa2_wl_wrapper_instance;
 
     before(async () => {
-        fa2_wl_instance = await fa2_wl.new(initial_storage.initial_storage_fa2_wl);
+        fa2_pwl_instance = await fa2_pwl.new(initial_storage.initial_storage_fa2_pwl);
         fa2_wl_wrapper_instance = await fa2_wl_wrapper.new(initial_storage.initial_storage_fa2_wl_wrapper);
 
         /**
          * Display the current contract address for debugging purposes
          */
-        console.log('Contract deployed at:', fa2_wl_instance.address);
+        console.log('Contract deployed at:', fa2_pwl_instance.address);
         console.log(
             'Wrapper contract deployed at:',
             fa2_wl_wrapper_instance.address
         );
-        storage = await fa2_wl_instance.storage();
+        storage = await fa2_pwl_instance.storage();
         wrapper_storage = await fa2_wl_wrapper_instance.storage();
     });
 
@@ -40,12 +40,12 @@ contract('fa2_wl', (_accounts) => {
 
             // Make method call and verify that this updates the storage of the wrapper contract
             await fa2_wl_wrapper_instance.call_token_metadata_registry(
-                fa2_wl_instance.address
+                fa2_pwl_instance.address
             );
             wrapper_storage = await fa2_wl_wrapper_instance.storage();
             assert.equal(
                 wrapper_storage.tmr_response,
-                fa2_wl_instance.address,
+                fa2_pwl_instance.address,
                 'wrapper storage is changed to the FA2 contract address as this is where the contract metadata is found'
             );
         });
