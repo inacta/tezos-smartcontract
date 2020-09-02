@@ -1,25 +1,22 @@
 const BigNumber = require('bignumber.js');
 const fa2_wl = artifacts.require('fa2_with_whitelisting');
 const fa2_wl_wrapper = artifacts.require('fa2_wl_wrapper');
-
-const {
-    initial_storage,
-} = require('../migrations/1_deploy_fa2_with_whitelisting.js');
-const constants = require('./../helpers/constants.js');
+const initial_storage = require('./../../helpers/storage');
+const constants = require('../../helpers/fa2Constants.js');
 
 /**
  * For testing on a babylonnet (testnet), instead of the sandbox network,
  * make sure to replace the keys for alice/bob accordingly.
  */
-const { alice, bob, david } = require('./../scripts/sandbox/accounts');
+const { alice, bob, david } = require('../../scripts/sandbox/accounts');
 const {
     addWhitelisters,
     addWhitelisteds,
     removeWhitelisters,
     removeWhitelisteds,
     transferParams,
-    expectThrow,
 } = require('./util.js');
+const { expectThrow } = require("../shared_utils.js");
 
 contract('fa2_wl', (_accounts) => {
     let storage;
@@ -27,8 +24,8 @@ contract('fa2_wl', (_accounts) => {
     let fa2_wl_wrapper_instance;
 
     before(async () => {
-        fa2_wl_instance = await fa2_wl.deployed();
-        fa2_wl_wrapper_instance = await fa2_wl_wrapper.deployed();
+        fa2_wl_instance = await fa2_wl.new(initial_storage.initial_storage_fa2_wl);
+        fa2_wl_wrapper_instance = await fa2_wl_wrapper.new(initial_storage.initial_storage_fa2_wl_wrapper);
 
         /**
          * Display the current contract address for debugging purposes
@@ -43,18 +40,21 @@ contract('fa2_wl', (_accounts) => {
     });
 
     describe('transfer and balances', () => {
-        const expectedBalanceAlice = initial_storage.ledger.get(alice.pkh)
-            .balances.get('0');
-        const expectedBalanceBob = initial_storage.ledger.get(bob.pkh).balances.get('0');
-        it(`should store a balance of ${expectedBalanceAlice} for Alice and ${expectedBalanceBob} for Bob`, async () => {
+        var initialAlice;
+        var initialBob;
+        it(`should store a balance for Alice and for Bob`, async () => {
             /**
              * Get balance for Alice from the smart contract's storage (by a big map key)
              */
+            initialAlice = await storage.ledger.get(alice.pkh);
+            initialBob = await storage.ledger.get(bob.pkh);
+            var expectedBalanceAlice = initialAlice.balances.get('0');
+        var expectedBalanceBob = initialBob.balances.get('0');
             const deployedAccountAliceProm = storage.ledger.get(alice.pkh);
             const deployedAccountBob = await storage.ledger.get(bob.pkh);
             deployedAccountAliceProm.then((alice) => {
-                assert.equal(alice.balances.get('0'), expectedBalanceAlice);
-                assert.equal(deployedAccountBob.balances.get('0'), expectedBalanceBob);
+                assert(alice.balances.get('0').isEqualTo(expectedBalanceAlice));
+                assert(deployedAccountBob.balances.get('0').isEqualTo(expectedBalanceBob));
             });
         });
 
@@ -169,7 +169,7 @@ contract('fa2_wl', (_accounts) => {
                 )
             );
 
-            expectThrow(
+            await expectThrow(
                 fa2_wl_instance.transfer(
                     transferParams([{ from: bob, to: [[alice, amount]] }])
                 ),

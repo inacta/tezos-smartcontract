@@ -45,26 +45,10 @@ function transferParams(transfers, token_id = 0) {
     }));
 }
 
-async function expectThrow(promise, message) {
-    try {
-        await promise;
-    } catch (error) {
-        if (message !== undefined) {
-            assert(
-                error.message === message,
-                `Expected '${message}' to equal '${error.message}'`
-            );
-        }
-        return;
-    }
-    assert.fail('Expected throw not received');
-}
-
 module.exports = {
     addWhitelisters,
     addWhitelisteds,
     removeWhitelisters,
     removeWhitelisteds,
     transferParams,
-    expectThrow,
 };
