@@ -1,0 +1,3 @@
+$ ligo compile-storage --michelson-format=json contracts/main/fa1_2_with_whitelisting.ligo main 'record [ ledger=big_map[("tz1QmL462eax1S2PvJC6TZdNg7TsxxfJSkzx" : address)->record[balance=1000000000000n; allowances=(map [] : map(address,nat))   ]]; total_supply=1000000000000n; whitelisteds=(set[]: set(address)); whitelisters=set [ ("tz1QmL462eax1S2PvJC6TZdNg7TsxxfJSkzx" : address) ];  whitelist_admins=set [ ("tz1QmL462eax1S
+2PvJC6TZdNg7TsxxfJSkzx" : address) ]; non_revocable_whitelist_admin=("tz1QmL462eax1S2PvJC6TZdNg7TsxxfJSkzx" : address) ]'
+$ ligo compile-contract --michelson-format=json contracts/main/fa1_2_with_whitelisting.ligo main | tr -d '\r' > out/fa1_2_with_whitelisting.tz
