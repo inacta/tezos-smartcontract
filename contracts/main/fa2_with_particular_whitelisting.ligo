@@ -50,12 +50,12 @@ end;
 function transfer_allowed(const from_ : address ; const to_ : address ; const token_id: token_id; const storage : storage) : unit is
 begin
     case storage.whitelisteds[from_] of
-        | Some(token_ids) -> if (token_ids contains token_id) then skip else failwith ("FA2_SENDER_NOT_WHITELISTED")
-        | None -> failwith ("FA2_SENDER_NOT_WHITELISTED")
+        | Some(token_ids) -> if (token_ids contains token_id) then skip else failwith ("SENDER_NOT_WHITELISTED")
+        | None -> failwith ("SENDER_NOT_WHITELISTED")
     end;
     case storage.whitelisteds[to_] of
-        | Some(token_ids) -> if (token_ids contains token_id) then skip else failwith ("FA2_RECEIVER_NOT_WHITELISTED")
-        | None -> failwith ("FA2_RECEIVER_NOT_WHITELISTED")
+        | Some(token_ids) -> if (token_ids contains token_id) then skip else failwith ("RECEIVER_NOT_WHITELISTED")
+        | None -> failwith ("RECEIVER_NOT_WHITELISTED")
     end;
 end with Unit;
 

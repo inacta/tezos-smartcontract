@@ -33,7 +33,7 @@ begin
 
     // We do not check if the address is already whitelisted/already removed. This functionality
     // mimics the function to update operators
-    if not (storage.whitelisters contains Tezos.sender) then failwith("FA2_ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS")
+    if not (storage.whitelisters contains Tezos.sender) then failwith("ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS")
     else skip;
 
     storage := List.fold(update_whitelisteds_iterator, update_whitelisteds_parameter, storage);
@@ -66,7 +66,7 @@ begin
         end
     end with ret;
 
-    if not (storage.whitelist_admins contains Tezos.sender) then failwith("FA2_ONLY_WHITELIST_ADMIN_CAN_UPDATE_WHITELISTERS")
+    if not (storage.whitelist_admins contains Tezos.sender) then failwith("ONLY_WHITELIST_ADMIN_CAN_UPDATE_WHITELISTERS")
     else skip;
     storage := List.fold(update_whitelisters_iterator, update_whitelisters_parameter, storage);
 
