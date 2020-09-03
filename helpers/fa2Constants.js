@@ -16,8 +16,8 @@ module.exports = {
             'NEW_NON_REVOCABLE_WHITELIST_ADMIN_NOT_WHITELIST_ADMIN',
         callerIsNonRevocableWlAdmin:
             'CALLER_IS_NON_REVOCABLE_WHITELIST_ADMIN',
-        onlyWlrCanAddWld: 'FA2_ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS',
-        senderNotWhitelisted: 'FA2_SENDER_NOT_WHITELISTED',
-        receiverNotWhitelisted: 'FA2_RECEIVER_NOT_WHITELISTED',
+        onlyWlrCanAddWld: 'ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS',
+        senderNotWhitelisted: 'SENDER_NOT_WHITELISTED',
+        receiverNotWhitelisted: 'RECEIVER_NOT_WHITELISTED',
     },
 };
