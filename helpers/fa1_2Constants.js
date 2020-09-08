@@ -13,5 +13,6 @@ module.exports = {
         senderNotWhiteListed: 'SENDER_NOT_WHITELISTED',
         receiverNotWhiteListed: 'RECEIVER_NOT_WHITELISTED',
         onlyWlrCanAddWld: 'ONLY_WHITELISTERS_CAN_UPDATE_WHITELISTEDS',
+        onlyMinterCanMint: 'ONLY_MINTER_CAN_MINT'
     },
 };
