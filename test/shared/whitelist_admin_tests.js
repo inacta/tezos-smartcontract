@@ -1,6 +1,6 @@
 const BigNumber = require('bignumber.js');
 const fa1_2_with_whitelisting = artifacts.require("fa1_2_with_whitelisting");
-const fa2_with_whitelisting = artifacts.require('fa2_with_whitelisting');
+const fa2_with_whitelisting = artifacts.require('fa2_with_particular_whitelisting');
 const initial_storage = require('../../helpers/storage');
 const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');
 const fa1_2Constants = require('../../helpers/fa1_2Constants.js');
@@ -18,7 +18,7 @@ contract('FA2 w/ whitelisting and FA1.2 w/ whitelisting', (_accounts) => {
 
     before(async () => {
         fa_instances[0] = await fa1_2_with_whitelisting.new(initial_storage.initial_storage_fa1_2_with_whitelisting_no_whitelisted);
-        fa_instances[1] = await fa2_with_whitelisting.new(initial_storage.initial_storage_fa2_wl);
+        fa_instances[1] = await fa2_with_whitelisting.new(initial_storage.initial_storage_fa2_pwl);
         contract_names[0] = "FA1.2 w/ whitelisting";
         contract_names[1] = "FA2 w/ whitelisting";
 

@@ -108,7 +108,7 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
         [`1`]: asset_description_1,
     });
     const empty_whitelisteds = MichelsonMap.fromLiteral({});
-    const initial_storage_fa2_wl = {
+    const initial_storage_fa2_pwl = {
         ledger: initial_ledger,
         token_metadata: token_metadata,
         whitelisteds: empty_whitelisteds,
@@ -117,7 +117,54 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
         non_revocable_whitelist_admin: alice.pkh,
     };
 
-    module.exports.initial_storage_fa2_wl = initial_storage_fa2_wl;
+    module.exports.initial_storage_fa2_pwl = initial_storage_fa2_pwl;
+}
+
+{
+    const positive_balance_ten = MichelsonMap.fromLiteral({
+        [`0`]: 10,
+        [`1`]: 10,
+    });
+    const positive_balance_two = MichelsonMap.fromLiteral({
+        [`0`]: 2
+    });
+
+    const initial_account = { balances: positive_balance_ten, allowances: [] };
+    const initial_account_david = { balances: positive_balance_two, allowances: [alice.pkh] };
+    const initial_ledger = MichelsonMap.fromLiteral({
+        [`${alice.pkh}`]: initial_account,
+        [`${bob.pkh}`]: initial_account,
+        [`${david.pkh}`]: initial_account_david,
+    });
+    const asset_description_0 = {
+        token_id: 0,
+        symbol: 'CVL0',
+        name: 'Crypto Valley Labs, iteration 0',
+        decimals: 6,
+        extras: MichelsonMap.fromLiteral({}),
+    };
+    const asset_description_1 = {
+        token_id: 1,
+        symbol: 'CVL1',
+        name: 'Crypto Valley Labs, iteration 1',
+        decimals: 12,
+        extras: MichelsonMap.fromLiteral({}),
+    };
+    // I think the type of the key of all big_maps has to be string
+    const token_metadata = MichelsonMap.fromLiteral({
+        [`0`]: asset_description_0,
+        [`1`]: asset_description_1,
+    });
+    const initial_storage_fa2_uwl = {
+        ledger: initial_ledger,
+        token_metadata: token_metadata,
+        whitelisteds: [],
+        whitelisters: [],
+        whitelist_admins: [alice.pkh],
+        non_revocable_whitelist_admin: alice.pkh,
+    };
+
+    module.exports.initial_storage_fa2_uwl = initial_storage_fa2_uwl;
 }
 
 {
