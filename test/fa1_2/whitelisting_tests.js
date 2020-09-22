@@ -1,5 +1,6 @@
 const BigNumber = require('bignumber.js');
 const fa1_2_with_whitelisting = artifacts.require("fa1_2_with_whitelisting");
+const fa1_2_burn_mint = artifacts.require("fa1_2_burn_mint");
 const initial_storage = require('./../../helpers/storage');
 
 const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');

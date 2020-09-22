@@ -39,6 +39,42 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
         [`${bob.pkh}`]: initial_account_bob,
         [`${david.pkh}`]: initial_account_david,
     });
+    const initial_storage_fa1_2_burn_mint_alice_minter = {
+        ledger: initial_ledger,
+        total_supply: 22,
+        minter: alice.pkh,
+    };
+
+    module.exports.initial_storage_fa1_2_burn_mint_alice_minter = initial_storage_fa1_2_burn_mint_alice_minter;
+}
+
+{
+    const initial_account_alice = { balance: 10, allowances: MichelsonMap.fromLiteral({}) };
+    const initial_account_bob = { balance: 10, allowances: MichelsonMap.fromLiteral({[`${alice.pkh}`]: 8}) };
+    const initial_account_david = { balance: 2, allowances: MichelsonMap.fromLiteral({}) };
+    const initial_ledger = MichelsonMap.fromLiteral({
+        [`${alice.pkh}`]: initial_account_alice,
+        [`${bob.pkh}`]: initial_account_bob,
+        [`${david.pkh}`]: initial_account_david,
+    });
+    const initial_storage_fa1_2_burn_mint_bob_minter = {
+        ledger: initial_ledger,
+        total_supply: 22,
+        minter: bob.pkh,
+    };
+
+    module.exports.initial_storage_fa1_2_burn_mint_bob_minter = initial_storage_fa1_2_burn_mint_bob_minter;
+}
+
+{
+    const initial_account_alice = { balance: 10, allowances: MichelsonMap.fromLiteral({}) };
+    const initial_account_bob = { balance: 10, allowances: MichelsonMap.fromLiteral({[`${alice.pkh}`]: 8}) };
+    const initial_account_david = { balance: 2, allowances: MichelsonMap.fromLiteral({}) };
+    const initial_ledger = MichelsonMap.fromLiteral({
+        [`${alice.pkh}`]: initial_account_alice,
+        [`${bob.pkh}`]: initial_account_bob,
+        [`${david.pkh}`]: initial_account_david,
+    });
     const initial_storage_fa1_2_with_whitelisting_all_whitelisted = {
         ledger: initial_ledger,
         total_supply: 22,
