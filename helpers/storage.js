@@ -49,6 +49,25 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
 }
 
 {
+    const initial_account_alice = { balance: 120, allowances: MichelsonMap.fromLiteral({}) };
+    const initial_account_bob = { balance: 10, allowances: MichelsonMap.fromLiteral({[`${alice.pkh}`]: 8}) };
+    const initial_account_david = { balance: 2, allowances: MichelsonMap.fromLiteral({}) };
+    const initial_ledger = MichelsonMap.fromLiteral({
+        [`${alice.pkh}`]: initial_account_alice,
+        [`${bob.pkh}`]: initial_account_bob,
+        [`${david.pkh}`]: initial_account_david,
+    });
+    const initial_storage_fa1_2_kiss = {
+        ledger: initial_ledger,
+        total_supply: 132,
+        nonces: MichelsonMap.fromLiteral({}),
+        signed_claims: [], // TODO: Remove
+    };
+
+    module.exports.initial_storage_fa1_2_kiss = initial_storage_fa1_2_kiss;
+}
+
+{
     const initial_account_alice = { balance: 10, allowances: MichelsonMap.fromLiteral({}) };
     const initial_account_bob = { balance: 10, allowances: MichelsonMap.fromLiteral({[`${alice.pkh}`]: 8}) };
     const initial_account_david = { balance: 2, allowances: MichelsonMap.fromLiteral({}) };
