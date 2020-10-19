@@ -64,7 +64,6 @@ contract('fa1_2_kiss', (_accounts) => {
             let aliceNonce = await storage.nonces.get(alice.pkh) || new BigNumber(0);
             let aliceNonceNumber = aliceNonce.toNumber();
 
-            // Express amount in mutez
             var msgToSign = packFourTupleAsLeftBalancedPairs(
                 new BigNumber(aliceNonceNumber),
                 new BigNumber(60),
@@ -82,7 +81,6 @@ contract('fa1_2_kiss', (_accounts) => {
                 }],
             };
 
-            // Also express amount in mutez here
             const aliceBefore = await storage.ledger.get(alice.pkh);
             const bobBefore = await storage.ledger.get(bob.pkh);
             assert(aliceBefore.balance.isEqualTo(new BigNumber(120)), "Alice's intial balance is 120");
@@ -92,6 +90,140 @@ contract('fa1_2_kiss', (_accounts) => {
             const bobAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfter.balance.isEqualTo(new BigNumber(60)), "Alice's new balance is 60");
             assert(bobAfter.balance.isEqualTo(new BigNumber(70)), "Bob's new balance is 70");
+        });
+
+        it('Should allow negative balances when calling the register_tandem_claims endpoint', async () => {
+            let bobSk = new InMemorySigner(bob.sk);
+            let bobNonce = await storage.nonces.get(bob.pkh) || new BigNumber(0);
+            let bobNonceNumber = bobNonce.toNumber();
+
+            var msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(bobNonceNumber),
+                new BigNumber(71),
+                [new BigNumber(0)],
+                [alice.pkh]);
+            var signature = await bobSk.sign(toHexString(msgToSign));
+            var tandemClaim = {
+                helpers: [alice.pkh],
+                activities: [0],
+                minutes: 71,
+                helpees: [{
+                    address: bob.pkh,
+                    pk: bob.pk,
+                    signature: signature.sig,
+                }],
+            };
+
+            const aliceBefore = await storage.ledger.get(alice.pkh);
+            const bobBefore = await storage.ledger.get(bob.pkh);
+            assert(aliceBefore.balance.isEqualTo(new BigNumber(60)), "Alice's intial balance is 60");
+            assert(bobBefore.balance.isEqualTo(new BigNumber(70)), "Bob's intial balance is 70");
+            assert(bobBefore.debit.isEqualTo(new BigNumber(0)), "Bob's intial debit is 0");
+            await instance.register_tandem_claims([tandemClaim]);
+            const aliceAfter = await storage.ledger.get(alice.pkh);
+            const bobAfter = await storage.ledger.get(bob.pkh);
+            assert(aliceAfter.balance.isEqualTo(new BigNumber(131)), "Alice's new balance is 131");
+            assert(bobAfter.balance.isEqualTo(new BigNumber(0)), "Bob's new balance is 0");
+            assert(bobAfter.debit.isEqualTo(new BigNumber(1)), "Bob's new debit is 1");
+
+            // apply the same transfer again and verify that it is allowed
+            msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(bobNonceNumber + 1),
+                new BigNumber(71),
+                [new BigNumber(0)],
+                [alice.pkh]);
+            signature = await bobSk.sign(toHexString(msgToSign));
+            tandemClaim = {
+                helpers: [alice.pkh],
+                activities: [0],
+                minutes: 71,
+                helpees: [{
+                    address: bob.pkh,
+                    pk: bob.pk,
+                    signature: signature.sig,
+                }],
+            };
+            await instance.register_tandem_claims([tandemClaim]);
+            var aliceAfterAfter = await storage.ledger.get(alice.pkh);
+            var bobAfterAfter = await storage.ledger.get(bob.pkh);
+            assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(202)), "Alice's new balance is 202");
+            assert(bobAfterAfter.balance.isEqualTo(new BigNumber(0)), "Bob's new balance is 0");
+            assert(bobAfterAfter.debit.isEqualTo(new BigNumber(72)), "Bob's new debit is 72");
+
+            // Switch helpee and helper roles and verify that balances and debits are updated correctly
+            let aliceSk = new InMemorySigner(alice.sk);
+            let aliceNonce = await storage.nonces.get(alice.pkh);
+            let aliceNonceNumber = aliceNonce.toNumber();
+            msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber),
+                new BigNumber(1),
+                [new BigNumber(0)],
+                [bob.pkh]);
+            signature = await aliceSk.sign(toHexString(msgToSign));
+            tandemClaim = {
+                helpers: [bob.pkh],
+                activities: [0],
+                minutes: 1,
+                helpees: [{
+                    address: alice.pkh,
+                    pk: alice.pk,
+                    signature: signature.sig,
+                }],
+            };
+            await instance.register_tandem_claims([tandemClaim]);
+            aliceAfterAfter = await storage.ledger.get(alice.pkh);
+            bobAfterAfter = await storage.ledger.get(bob.pkh);
+            assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(201)), "Alice's new balance is 201");
+            assert(bobAfterAfter.balance.isEqualTo(new BigNumber(0)), "Bob's new balance is 0");
+            assert(bobAfterAfter.debit.isEqualTo(new BigNumber(71)), "Bob's new debit is 71");
+
+            // Apply a similar tandem again and verify that balances and debit are updated correctly
+            msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber + 1),
+                new BigNumber(2),
+                [new BigNumber(0)],
+                [bob.pkh]);
+            signature = await aliceSk.sign(toHexString(msgToSign));
+            tandemClaim = {
+                helpers: [bob.pkh],
+                activities: [0],
+                minutes: 2,
+                helpees: [{
+                    address: alice.pkh,
+                    pk: alice.pk,
+                    signature: signature.sig,
+                }],
+            };
+            await instance.register_tandem_claims([tandemClaim]);
+            aliceAfterAfter = await storage.ledger.get(alice.pkh);
+            bobAfterAfter = await storage.ledger.get(bob.pkh);
+            assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(199)), "Alice's new balance is 199");
+            assert(bobAfterAfter.balance.isEqualTo(new BigNumber(0)), "Bob's new balance is 0");
+            assert(bobAfterAfter.debit.isEqualTo(new BigNumber(69)), "Bob's new debit is 69");
+
+            // Return Bob to his original balance by first removing debit and adding to balance
+            msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber + 2),
+                new BigNumber(139),
+                [new BigNumber(0)],
+                [bob.pkh]);
+            signature = await aliceSk.sign(toHexString(msgToSign));
+            tandemClaim = {
+                helpers: [bob.pkh],
+                activities: [0],
+                minutes: 139,
+                helpees: [{
+                    address: alice.pkh,
+                    pk: alice.pk,
+                    signature: signature.sig,
+                }],
+            };
+            await instance.register_tandem_claims([tandemClaim]);
+            aliceAfterAfter = await storage.ledger.get(alice.pkh);
+            bobAfterAfter = await storage.ledger.get(bob.pkh);
+            assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(60)), "Alice's final balance is 60");
+            assert(bobAfterAfter.balance.isEqualTo(new BigNumber(70)), "Bob's final balance is 70");
+            assert(bobAfterAfter.debit.isEqualTo(new BigNumber(0)), "Bob's final debit is 0");
         });
 
         it('should fail on wrong signature with bad secret key', async () => {

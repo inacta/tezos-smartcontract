@@ -2,6 +2,7 @@ const BigNumber = require('bignumber.js');
 const fa1_2_basic = artifacts.require("fa1_2_basic");
 const fa1_2_burn_mint = artifacts.require("fa1_2_burn_mint");
 const fa1_2_with_whitelisting = artifacts.require("fa1_2_with_whitelisting");
+const fa1_2_kiss = artifacts.require("fa1_2_kiss");
 const initial_storage = require('../../helpers/storage');
 
 const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');
@@ -24,6 +25,8 @@ contract('fa1_2_basic and fa1_2_with_whitelisting', (_accounts) => {
         fa1_2_instances[1] = await fa1_2_with_whitelisting.new(initial_storage.initial_storage_fa1_2_with_whitelisting_all_whitelisted);
         contract_names[2] = "fa1_2_burn_mint";
         fa1_2_instances[2] = await fa1_2_burn_mint.new(initial_storage.initial_storage_fa1_2_burn_mint_alice_minter);
+        contract_names[3] = "fa1_2_kiss";
+        fa1_2_instances[3] = await fa1_2_kiss.new(initial_storage.initial_storage_fa1_2_kiss);
 
         /**
          * Display the current contract address for debugging purposes
@@ -31,9 +34,11 @@ contract('fa1_2_basic and fa1_2_with_whitelisting', (_accounts) => {
         console.log('FA1.2 contract deployed at:', fa1_2_instances[0].address);
         console.log('FA1.2-WL contract deployed at:', fa1_2_instances[1].address);
         console.log('FA1.2 burn/mint:', fa1_2_instances[2].address);
+        console.log('FA1.2 kiss:', fa1_2_instances[3].address);
         storages[0] = await fa1_2_instances[0].storage();
         storages[1] = await fa1_2_instances[1].storage();
         storages[2] = await fa1_2_instances[2].storage();
+        storages[3] = await fa1_2_instances[3].storage();
     });
 
     describe('approve', () => {
