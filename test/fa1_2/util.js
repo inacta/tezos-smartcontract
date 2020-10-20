@@ -45,6 +45,11 @@ function packIntegerSet(input) {
         throw Error("Input must be of type array");
     }
 
+    // Sort integers since activities are stored as set(nat), and set is sorted internally
+    // This means that the hash preimage is generated from a sorted sequence of integers, and
+    // that must be reflected here
+    input.sort();
+
     const packedIntegers = input.map(x => packInteger(x));
     const lengthOfValues = packedIntegers.reduce((a, b) => a + b.length, 0);
     var res = new Uint8Array(lengthOfValues + 5);

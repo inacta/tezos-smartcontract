@@ -1,3 +1,4 @@
+const BigNumber = require('bignumber.js');
 const { MichelsonMap } = require('@taquito/taquito');
 const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
 
@@ -58,13 +59,38 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
         [`${david.pkh}`]: initial_account_david,
     });
     const initial_storage_fa1_2_kiss = {
+        admin: alice.pkh,
         ledger: initial_ledger,
         total_supply: 132,
         nonces: MichelsonMap.fromLiteral({}),
         signed_claims: [], // TODO: Remove
+        allowed_activities: MichelsonMap.fromLiteral({
+             [`0`]: true,
+             [`1`]: true,
+             [`2`]: true,
+         }),
     };
 
     module.exports.initial_storage_fa1_2_kiss = initial_storage_fa1_2_kiss;
+}
+
+{
+    const activity_balance = MichelsonMap.fromLiteral({
+        [`0`]: new BigNumber(0),
+        [`1`]: new BigNumber(0),
+        [`2`]: new BigNumber(0),
+    });
+    const allowed_activities = MichelsonMap.fromLiteral({
+        [`0`]: true,
+        [`1`]: true,
+        [`2`]: true,
+    });
+    const initial_storage_fa1_2_kiss_activity_log = {
+        activity_balance: activity_balance,
+        allowed_activities: allowed_activities,
+    };
+
+    module.exports.initial_storage_fa1_2_kiss_activity_log = initial_storage_fa1_2_kiss_activity_log;
 }
 
 {

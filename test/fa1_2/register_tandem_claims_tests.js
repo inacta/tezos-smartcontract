@@ -1,6 +1,7 @@
 const BigNumber = require('bignumber.js');
 const { InMemorySigner } = require('@taquito/signer');
 const fa1_2_kiss = artifacts.require("fa1_2_kiss");
+const fa1_2_kiss_activity_log = artifacts.require("fa1_2_kiss_activity");
 const initial_storage = require('../../helpers/storage');
 
 const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');
@@ -24,12 +25,16 @@ contract('fa1_2_kiss', (_accounts) => {
     before(async () => {
         contract_name = "fa1_2_kiss";
         instance = await fa1_2_kiss.new(initial_storage.initial_storage_fa1_2_kiss);
+        initial_storage.initial_storage_fa1_2_kiss_activity_log.admin = instance.address;
+        activity_instance = await fa1_2_kiss_activity_log.new(initial_storage.initial_storage_fa1_2_kiss_activity_log);
 
         /**
          * Display the current contract address for debugging purposes
          */
         console.log('FA1.2 KISS contract deployed at:', instance.address);
+        console.log('FA1.2 KISS activity log contract deployed at:', activity_instance.address);
         storage = await instance.storage();
+        activity_storage = await activity_instance.storage();
     });
 
     describe('serialization test', () => {
@@ -54,8 +59,6 @@ contract('fa1_2_kiss', (_accounts) => {
                 'KT1CSYNJ6dFcnsV4QJ6HnBFtdif8LJGPQiDM',])),
                 "02000000360a000000160000a31e81ac3425310e3274a4698a793b2839dc0afa0a00000016012a5228941252ef7e152e6374810664778d556ff300");
         });
-
-
     });
 
     describe('approve', () => {
@@ -85,11 +88,13 @@ contract('fa1_2_kiss', (_accounts) => {
             const bobBefore = await storage.ledger.get(bob.pkh);
             assert(aliceBefore.balance.isEqualTo(new BigNumber(120)), "Alice's intial balance is 120");
             assert(bobBefore.balance.isEqualTo(new BigNumber(10)), "Bob's intial balance is 10");
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfter.balance.isEqualTo(new BigNumber(60)), "Alice's new balance is 60");
             assert(bobAfter.balance.isEqualTo(new BigNumber(70)), "Bob's new balance is 70");
+
+            // Verify that storage in the activity recording contract has also been updated
         });
 
         it('Should allow negative balances when calling the register_tandem_claims endpoint', async () => {
@@ -119,7 +124,7 @@ contract('fa1_2_kiss', (_accounts) => {
             assert(aliceBefore.balance.isEqualTo(new BigNumber(60)), "Alice's intial balance is 60");
             assert(bobBefore.balance.isEqualTo(new BigNumber(70)), "Bob's intial balance is 70");
             assert(bobBefore.debit.isEqualTo(new BigNumber(0)), "Bob's intial debit is 0");
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfter.balance.isEqualTo(new BigNumber(131)), "Alice's new balance is 131");
@@ -143,7 +148,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             var aliceAfterAfter = await storage.ledger.get(alice.pkh);
             var bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(202)), "Alice's new balance is 202");
@@ -170,7 +175,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
             bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(201)), "Alice's new balance is 201");
@@ -194,7 +199,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
             bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(199)), "Alice's new balance is 199");
@@ -218,7 +223,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
             bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(60)), "Alice's final balance is 60");
@@ -251,7 +256,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim]),
+                instance.register_tandem_claims([tandemClaim], activity_instance.address),
                 "INVALID_SIGNATURE"
             );
 
@@ -259,7 +264,7 @@ contract('fa1_2_kiss', (_accounts) => {
             let bobSK = new InMemorySigner(bob.sk);
             signature = await bobSK.sign(toHexString(msgToSign));
             tandemClaim.helpees[0].signature = signature.sig;
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
         });
 
         it('should fail on wrong signature with bad minute value', async () => {
@@ -286,7 +291,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim]),
+                instance.register_tandem_claims([tandemClaim], activity_instance.address),
                 "INVALID_SIGNATURE"
             );
 
@@ -298,7 +303,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [charlie.pkh]);
             var signature = await bobSk.sign(toHexString(msgToSign));
             tandemClaim.helpees[0].signature = signature.sig;
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
         });
 
         it('should fail on wrong signature with bad nonce', async () => {
@@ -325,7 +330,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim]),
+                instance.register_tandem_claims([tandemClaim], activity_instance.address),
                 "INVALID_SIGNATURE"
             );
 
@@ -337,7 +342,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [charlie.pkh]);
             var signature = await aliceSk.sign(toHexString(msgToSign));
             tandemClaim.helpees[0].signature = signature.sig;
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
         });
 
         it('should fail on wrong signature with recipient address', async () => {
@@ -364,13 +369,75 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim]),
+                instance.register_tandem_claims([tandemClaim], activity_instance.address),
                 "INVALID_SIGNATURE"
             );
 
             // Fix recipient and verify that it works
             tandemClaim.helpers[0] = charlie.pkh;
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+        });
+
+        it('disallow unregistered activities', async () => {
+            let aliceSk = new InMemorySigner(alice.sk);
+            let aliceNonce = await storage.nonces.get(alice.pkh) || new BigNumber(0);
+            let aliceNonceNumber = aliceNonce.toNumber();
+
+            // Express amount in mutez
+            var msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber),
+                new BigNumber(1),
+                [new BigNumber(3)],
+                [bob.pkh]);
+            var signature = await aliceSk.sign(toHexString(msgToSign));
+            var tandemClaim = {
+                helpers: [bob.pkh],
+                activities: [3],
+                minutes: 1,
+                helpees: [{
+                    address: alice.pkh,
+                    pk: alice.pk,
+                    signature: signature.sig,
+                }],
+            };
+
+            await expectThrow(
+                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                "UNKNOWN_ACTIVITY"
+            );
+
+            // Change activity and verify that it works
+            msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber),
+                new BigNumber(1),
+                [new BigNumber(2)],
+                [bob.pkh]);
+            signature = await aliceSk.sign(toHexString(msgToSign));
+            tandemClaim.activities[0] = 2;
+            tandemClaim.helpees[0].signature = signature.sig;
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+
+            // Disallow activity 2 and verify expected error message
+            await instance.call_suspend_allowed_activity(2, activity_instance.address);
+
+            aliceNonce = await storage.nonces.get(alice.pkh);
+            aliceNonceNumber = aliceNonce.toNumber();
+            msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber),
+                new BigNumber(1),
+                [new BigNumber(2)],
+                [bob.pkh]);
+            signature = await aliceSk.sign(toHexString(msgToSign));
+            tandemClaim.helpees[0].signature = signature.sig;
+
+            await expectThrow(
+                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                "ACTIVITY_SUSPENDED"
+            );
+
+            // Allow activity 2 again, and verify that this registration is now allowed
+            await instance.call_add_allowed_activity(2, activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
         });
 
         it('should allow two helpers on one claim', async () => {
@@ -397,7 +464,7 @@ contract('fa1_2_kiss', (_accounts) => {
             const aliceBefore = await storage.ledger.get(alice.pkh);
             const bobBefore = await storage.ledger.get(bob.pkh);
             const davidBefore = await storage.ledger.get(david.pkh);
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             // const charlieAfter = await storage.ledger.get(charlie.pkh);
@@ -433,7 +500,7 @@ contract('fa1_2_kiss', (_accounts) => {
             const bobBefore = await storage.ledger.get(bob.pkh);
             const charlieBefore = await storage.ledger.get(charlie.pkh);
             const davidBefore = await storage.ledger.get(david.pkh);
-            await instance.register_tandem_claims([tandemClaim]);
+            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             const charlieAfter = await storage.ledger.get(charlie.pkh);
@@ -470,12 +537,14 @@ contract('fa1_2_kiss', (_accounts) => {
             var msgToSign3 = packFourTupleAsLeftBalancedPairs(
                 new BigNumber(aliceNonceNumber++),
                 new BigNumber(4),
-                [new BigNumber(2)],
+                 // The order of activities in this list should not matter as they are sorted before made into a hash preimage
+                 // this reflects that they are handled as a set in the LIGO smart contract
+                [new BigNumber(2), new BigNumber(1)],
                 [bob.pkh]);
             var msgToSign4 = packFourTupleAsLeftBalancedPairs(
                 new BigNumber(bobNonceNumber),
                 new BigNumber(1),
-                [new BigNumber(3)],
+                [new BigNumber(0)],
                 [alice.pkh]);
             var signature0 = await aliceSk.sign(toHexString(msgToSign0));
             var signature1 = await aliceSk.sign(toHexString(msgToSign1));
@@ -514,7 +583,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
             var tandemClaim3 = {
                 helpers: [bob.pkh],
-                activities: [2],
+                activities: [1, 2],
                 minutes: 4,
                 helpees: [{
                     address: alice.pkh,
@@ -524,7 +593,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
             var tandemClaim4 = {
                 helpers: [alice.pkh],
-                activities: [3],
+                activities: [0],
                 minutes: 1,
                 helpees: [{
                     address: bob.pkh,
@@ -535,11 +604,15 @@ contract('fa1_2_kiss', (_accounts) => {
 
             // Charlie does not have an initial entry in storage, so we cannot
             // look up charlie prior to the function call
+            activity_storage = await activity_instance.storage();
             const aliceBefore = await storage.ledger.get(alice.pkh);
             const bobBefore = await storage.ledger.get(bob.pkh);
             const charlieBefore = await storage.ledger.get(charlie.pkh);
             const davidBefore = await storage.ledger.get(david.pkh);
-            await instance.register_tandem_claims([tandemClaim0, tandemClaim1, tandemClaim2, tandemClaim3, tandemClaim4]);
+            const activity0Before = activity_storage.activity_balance.get('0');
+            const activity1Before = activity_storage.activity_balance.get('1');
+            const activity2Before = activity_storage.activity_balance.get('2');
+            await instance.register_tandem_claims([tandemClaim0, tandemClaim1, tandemClaim2, tandemClaim3, tandemClaim4], activity_instance.address);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             const charlieAfter = await storage.ledger.get(charlie.pkh);
@@ -548,6 +621,23 @@ contract('fa1_2_kiss', (_accounts) => {
             assert(bobAfter.balance.isEqualTo(bobBefore.balance.plus(new BigNumber(4))), "Bob has four more minutes");
             assert(davidAfter.balance.isEqualTo(davidBefore.balance.plus(new BigNumber(3))), "David has three more minutes");
             assert(charlieAfter.balance.isEqualTo(charlieBefore.balance.plus(new BigNumber(2))), "Charlie has two more minutes");
+
+            // Verify new activity log values
+            activity_storage = await activity_instance.storage();
+            const activity0After = activity_storage.activity_balance.get('0');
+            const activity1After = activity_storage.activity_balance.get('1');
+            const activity2After = activity_storage.activity_balance.get('2');
+            assert(activity0After.isEqualTo(activity0Before.plus(new BigNumber(4))), "Time spent on activity 0 increased by 4");
+            assert(activity1After.isEqualTo(activity1Before.plus(new BigNumber(5))), "Time spent on activity 1 increased by 5");
+            assert(activity2After.isEqualTo(activity2Before.plus(new BigNumber(2))), "Time spent on activity 2 increased by 2");
+        });
+
+        it('should be possible to change activity log admin', async () => {
+            activity_storage = await activity_instance.storage();
+            assert.equal(activity_storage.admin, instance.address);
+            await instance.call_change_admin(activity_instance.address, bob.pkh);
+            activity_storage = await activity_instance.storage();
+            assert.equal(activity_storage.admin, bob.pkh);
         });
     });
 });
