@@ -63,7 +63,6 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
         ledger: initial_ledger,
         total_supply: 132,
         nonces: MichelsonMap.fromLiteral({}),
-        signed_claims: [], // TODO: Remove
         allowed_activities: MichelsonMap.fromLiteral({
              [`0`]: true,
              [`1`]: true,

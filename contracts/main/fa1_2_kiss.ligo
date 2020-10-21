@@ -349,6 +349,7 @@ begin
 
             function transfer_to_recipient(var storage: storage; const recipient: address): storage is
             begin
+                // TODO: Add whitelisting check here if WL is required. This place, both sender and recipient are available
                 var dst: account := record
                     balance = 0n;
                     allowances = (map end : map(address, nat));
