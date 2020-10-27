@@ -16,7 +16,6 @@ type signed_claim is record
     minutes: nat;
     activities: set(nat);
     recipients: set(address);
-    // nonce: nat;
 end
 
 type activity is nat;
@@ -55,14 +54,16 @@ type action is
 | Call_suspend_allowed_activity of (nat * address)
 | Call_change_admin of (address * address)
 // | Register_tandem_claims_admin of tandem_param_
+// TODO: We probably need to an admin endpoint here for the registration of tandem claims
+// without signature verification
 
-// External entry points in activity contract
+(* Endpoints for the external activity log contract *)
 type add_allowed_activity is Add_allowed_activity of nat;
 type suspend_allowed_activity is Suspend_allowed_activity of nat;
 type update_activity_balance is Update_activity_balance of list(list((nat * nat)));
 type change_admin is Change_admin of address;
 
-// Type definition of storage
+(* Type definition for storage *)
 type storage is record
   ledger: big_map(address, account);
 
@@ -74,22 +75,23 @@ type storage is record
   admin: address; // admin can change approved activities
 end
 
+(* KISS-specific endpoints *)
 function call_add_allowed_activity(const new_activity: nat; const external_contract_address: address; var storage: storage) : (list(operation) * storage) is
 begin
     if Tezos.sender =/= storage.admin then
         failwith("CALLER_NOT_ADMIN");
     else
         skip;
+
     // If activity already exists, ignore and do not report error
     storage.allowed_activities[new_activity] := True;
 
-    // Prepare all to external contract
+    // Prepare call to external contract
     const other_contract: contract(add_allowed_activity) =
     case (Tezos.get_entrypoint_opt("%add_allowed_activity", external_contract_address): option(contract(add_allowed_activity))) of
       | Some (c) -> c
       | None -> (failwith("not a correct contract") : contract(add_allowed_activity))
     end;
-
 end with ((list [Tezos.transaction(Add_allowed_activity(new_activity), 0mutez, other_contract)] : list(operation)), storage);
 
 function call_suspend_allowed_activity(const activity: nat; const external_contract_address: address; var storage: storage) : (list(operation) * storage) is
@@ -98,12 +100,14 @@ begin
         failwith("CALLER_NOT_ADMIN");
     else
         skip;
+
+    // only allow suspension of already registered activities
     case storage.allowed_activities[activity] of
         | Some(allowed) -> storage.allowed_activities[activity] := False
         | None -> failwith("ACTIVITY_DOES_NO_EXIST")
     end;
 
-    // Prepare all to external contract
+    // Prepare call to external contract
     const other_contract: contract(suspend_allowed_activity) =
     case (Tezos.get_entrypoint_opt("%suspend_allowed_activity", external_contract_address): option(contract(suspend_allowed_activity))) of
       | Some (c) -> c
@@ -111,6 +115,7 @@ begin
     end;
 end with ((list [Tezos.transaction(Suspend_allowed_activity(activity), 0mutez, other_contract)] : list(operation)), storage);
 
+(* Regular FA1.2 endpoints *)
 // This verifies the whitelisting status, as this contract does not yet support whitelisting, it returns unit
 function transfer_allowed(const from_ : address ; const to_ : address ; const storage : storage) : unit is Unit;
 
@@ -144,8 +149,10 @@ function transfer (const accountFrom : address ; const destination : address ; c
   else block {
     // Verify that caller address (Sender) is allowed to spend from this address
     const allowed = is_approved(accountFrom, value, s);
-    if allowed then skip;
-    else failwith ("NotEnoughAllowance");
+    if allowed then
+        skip;
+    else
+        failwith ("NotEnoughAllowance");
 
     const unit_value: unit = transfer_allowed(accountFrom, destination, s);
 
@@ -163,9 +170,10 @@ function transfer (const accountFrom : address ; const destination : address ; c
     end;
 
     // Check that the source can spend that much
-    if value > src.balance
-    then failwith ("NotEnoughBalance");
-    else skip;
+    if value > src.balance then
+        failwith ("NotEnoughBalance");
+    else
+        skip;
 
     // Update the source balance
     // Using the abs function to convert int to nat
@@ -177,8 +185,10 @@ function transfer (const accountFrom : address ; const destination : address ; c
           Some (allowance) -> allowance
           | None -> (failwith("NoAllowance"): nat)
         end;
-        if allowanceAmount - value < 0 then failwith ("Allowance amount cannot be negative");
-        else src.allowances[Tezos.sender] := abs(allowanceAmount - value);
+        if allowanceAmount - value < 0 then
+            failwith ("Allowance amount cannot be negative");
+        else
+            src.allowances[Tezos.sender] := abs(allowanceAmount - value);
     } else skip;
 
     s.ledger[accountFrom] := src;
@@ -194,7 +204,6 @@ function transfer (const accountFrom : address ; const destination : address ; c
       | Some(n) -> dst := n
     end;
 
-    // Update the destination balance
     dst.balance := dst.balance + value;
 
     s.ledger[destination] := dst;
@@ -238,7 +247,7 @@ function approve (const spender : address ; const value : nat ; var s : storage)
 // Note that the following three view functions are intended for contract-2-contract interaction,
 // they are not like Ethereum's view functions which can run without writing to the blockchain.
 // If you want to read a balance or another value from a deployed contract, you should read
-// directly from memory.
+// directly from storage.
 
 // View function that forwards the allowance amount of spender in the name of tokenOwner to a contract
 // Pre conditions:
@@ -279,6 +288,7 @@ end with list [transaction(balance_, 0tz, contr)]
 function get_total_supply (const contr : contract(nat) ; var s : storage) : list(operation) is
   list [transaction(s.total_supply, 0tz, contr)]
 
+(* Main KISS endpoint *)
 function register_tandem_claims(const claims: list(tandem_claim_michelson); const external_contract_address: address; var storage : storage): (list(operation) * storage) is
 begin
     // Signatures are protected against replay attack such that each signature can only be used for one withdrawal
@@ -294,7 +304,7 @@ begin
 
     function verify_signature(const signed_claim: signed_claim; const nonce: nat) : bool is
     begin
-        // We create a left-balanced tree to pack the relevant values: (((nonce, minutes), activities ), recipients)
+        // Create a left-balanced tree to pack the relevant values: (((nonce, minutes), activities ), recipients)
         const message: bytes = Bytes.pack((((nonce, signed_claim.minutes), signed_claim.activities), signed_claim.recipients));
         const valid: bool = Crypto.check(signed_claim.pk, signed_claim.signature, message);
     end with valid;
@@ -340,7 +350,6 @@ begin
 
             storage.nonces[signed_claim.sender] := nonce + 1n;
 
-            // TODO: Should we also check if signed_claim.minutes % List.size( signed_claim.helpers ) == 0 here?
             const minutes_per_recipient: nat = signed_claim.minutes / Set.size( signed_claim.recipients );
             if minutes_per_recipient * Set.size( signed_claim.recipients ) =/= signed_claim.minutes then
                 failwith("INCONSISTENT_MINUTES_PER_RECIPIENT");
@@ -413,9 +422,6 @@ begin
         // Make all balance updates
         storage := List.fold(apply_signed_claim, signed_claims, storage);
 
-        // TODO: Add call to external contract
-
-        // For each helper in the helpers set, create an individual_tandem_claim record and iterate over these.
     end with storage;
 
     // Iterate over all claims
@@ -477,7 +483,7 @@ end with (operation, storage);
 
 function main (const p : action ; const s : storage) : (list(operation) * storage) is
  block {
-   // Reject any transaction that tries to transfer token to this contract
+   // Reject any transaction that tries to transfer tez to this contract
    if amount =/= 0tz then failwith ("This contract does not accept tezi deposits");
    else skip;
   } with case p of
