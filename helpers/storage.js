@@ -60,6 +60,7 @@ const { alice, bob, charlie, david } = require('./../scripts/sandbox/accounts');
     });
     const initial_storage_fa1_2_kiss = {
         admin: alice.pkh,
+        external_contract_address: alice.pkh, // temporary (wrong) value, should be corrected after deployment of activity log contract
         ledger: initial_ledger,
         total_supply: 132,
         nonces: MichelsonMap.fromLiteral({}),

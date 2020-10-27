@@ -43,16 +43,19 @@ type tandem_claim_michelson is michelson_pair_right_comb(tandem_claim);
 type tandem_param is list(tandem_claim_michelson);
 
 // Type definition for entry points
+// Change_admin_this is called so to prevent name clash with endpoint in activity log contract
 type action is
 | Transfer of (address * address * nat)
 | Approve of (address * nat)
 | Get_allowance of (address * address * contract(nat))
 | Get_balance of (address * contract(nat))
 | Get_total_supply of (unit * contract(nat))
-| Register_tandem_claims of (tandem_param * address)
-| Call_add_allowed_activity of (nat * address)
-| Call_suspend_allowed_activity of (nat * address)
-| Call_change_admin of (address * address)
+| Register_tandem_claims of tandem_param
+| Change_activity_log of address
+| Change_admin_this of address
+| Call_add_allowed_activity of nat
+| Call_suspend_allowed_activity of nat
+| Call_change_admin of address
 // | Register_tandem_claims_admin of tandem_param_
 // TODO: We probably need to an admin endpoint here for the registration of tandem claims
 // without signature verification
@@ -65,6 +68,7 @@ type change_admin is Change_admin of address;
 
 (* Type definition for storage *)
 type storage is record
+  external_contract_address: address;
   ledger: big_map(address, account);
 
   // nonces are used to prevent replay attacks where signatures can be reused
@@ -76,7 +80,7 @@ type storage is record
 end
 
 (* KISS-specific endpoints *)
-function call_add_allowed_activity(const new_activity: nat; const external_contract_address: address; var storage: storage) : (list(operation) * storage) is
+function call_add_allowed_activity(const new_activity: nat; var storage: storage) : (list(operation) * storage) is
 begin
     if Tezos.sender =/= storage.admin then
         failwith("CALLER_NOT_ADMIN");
@@ -88,13 +92,13 @@ begin
 
     // Prepare call to external contract
     const other_contract: contract(add_allowed_activity) =
-    case (Tezos.get_entrypoint_opt("%add_allowed_activity", external_contract_address): option(contract(add_allowed_activity))) of
+    case (Tezos.get_entrypoint_opt("%add_allowed_activity", storage.external_contract_address): option(contract(add_allowed_activity))) of
       | Some (c) -> c
       | None -> (failwith("not a correct contract") : contract(add_allowed_activity))
     end;
 end with ((list [Tezos.transaction(Add_allowed_activity(new_activity), 0mutez, other_contract)] : list(operation)), storage);
 
-function call_suspend_allowed_activity(const activity: nat; const external_contract_address: address; var storage: storage) : (list(operation) * storage) is
+function call_suspend_allowed_activity(const activity: nat; var storage: storage) : (list(operation) * storage) is
 begin
     if Tezos.sender =/= storage.admin then
         failwith("CALLER_NOT_ADMIN");
@@ -109,7 +113,7 @@ begin
 
     // Prepare call to external contract
     const other_contract: contract(suspend_allowed_activity) =
-    case (Tezos.get_entrypoint_opt("%suspend_allowed_activity", external_contract_address): option(contract(suspend_allowed_activity))) of
+    case (Tezos.get_entrypoint_opt("%suspend_allowed_activity", storage.external_contract_address): option(contract(suspend_allowed_activity))) of
       | Some (c) -> c
       | None -> (failwith("not a correct contract") : contract(suspend_allowed_activity))
     end;
@@ -289,7 +293,7 @@ function get_total_supply (const contr : contract(nat) ; var s : storage) : list
   list [transaction(s.total_supply, 0tz, contr)]
 
 (* Main KISS endpoint *)
-function register_tandem_claims(const claims: list(tandem_claim_michelson); const external_contract_address: address; var storage : storage): (list(operation) * storage) is
+function register_tandem_claims(const claims: list(tandem_claim_michelson); var storage : storage): (list(operation) * storage) is
 begin
     // Signatures are protected against replay attack such that each signature can only be used for one withdrawal
     // but they are *not* protected against recombination attacks where a helpee's signature is replaced with another
@@ -427,6 +431,7 @@ begin
     // Iterate over all claims
     storage := List.fold(register_tandem_claim_iterator, tandem_claims, storage);
 
+    // Store activity data in external activity contract
     function tandem_claims_to_activity_list(const tandem_claims : list(tandem_claim)) : list(list(nat * nat)) is
     begin
         function tandem_claims_to_activity_iterator(var acc: list(list(nat * nat)); const tandem_claim: tandem_claim) : list(list(nat * nat)) is
@@ -452,21 +457,19 @@ begin
     end with activities;
 
     // Call function tandem_claims to get a list of tuples from tandem_claims.
-    // const activities: list(list(nat * nat)) = (nil : list(list(nat * nat)));
     const activities: list(list(nat * nat)) = tandem_claims_to_activity_list(tandem_claims);
 
     // Prepare call to external contract
-    // TODO: how do I get a list of balance update values from the claims list.
     const other_contract: contract(update_activity_balance) =
-        case (Tezos.get_entrypoint_opt("%update_activity_balance", external_contract_address): option(contract(update_activity_balance))) of
+        case (Tezos.get_entrypoint_opt("%update_activity_balance", storage.external_contract_address): option(contract(update_activity_balance))) of
             | Some (c) -> c
             | None -> (failwith("not a correct contract") : contract(update_activity_balance))
         end;
     const operation: list(operation) = list [Tezos.transaction(Update_activity_balance(activities), 0mutez, other_contract)];
 end with (operation, storage);
 
-// Endpoint used to change admin contract in activity log. This contract must be admin to successfully change admin in activity log contract
-function call_change_admin(const external_contract_address : address ; const new_admin : address ; var storage : storage) : (list(operation) * storage) is
+// Endpoint used to change admin contract in activity log contract. This contract must be admin to successfully change admin in activity log contract
+function call_change_admin(const new_admin : address ; var storage : storage) : (list(operation) * storage) is
 begin
     if Tezos.sender =/= storage.admin then
         failwith("CALLER_NOT_ADMIN");
@@ -474,12 +477,32 @@ begin
         skip;
 
     const other_contract: contract(change_admin) =
-        case (Tezos.get_entrypoint_opt("%change_admin", external_contract_address): option(contract(change_admin))) of
+        case (Tezos.get_entrypoint_opt("%change_admin", storage.external_contract_address): option(contract(change_admin))) of
             | Some (c) -> c
             | None -> (failwith("not a correct contract") : contract(change_admin))
         end;
     const operation: list(operation) = list [Tezos.transaction(Change_admin(new_admin), 0mutez, other_contract)];
 end with (operation, storage);
+
+function change_activity_log(const new_external_contract_address: address; var storage: storage) is
+begin
+    if Tezos.sender =/= storage.admin then
+        failwith("CALLER_NOT_ADMIN");
+    else
+        skip;
+
+    storage.external_contract_address := new_external_contract_address;
+end with ((nil: list(operation)), storage);
+
+function change_admin_this(const new_admin: address; var storage: storage) is
+begin
+    if Tezos.sender =/= storage.admin then
+        failwith("CALLER_NOT_ADMIN");
+    else
+        skip;
+
+    storage.admin := new_admin;
+end with ((nil: list(operation)), storage);
 
 function main (const p : action ; const s : storage) : (list(operation) * storage) is
  block {
@@ -492,8 +515,10 @@ function main (const p : action ; const s : storage) : (list(operation) * storag
   | Get_allowance(n) -> (get_allowance(n.0, n.1, n.2, s), s)
   | Get_balance(n) -> (get_balance(n.0, n.1, s), s)
   | Get_total_supply(n) -> (get_total_supply(n.1, s), s)
-  | Register_tandem_claims(n) -> (register_tandem_claims(n.0, n.1, s))
-  | Call_add_allowed_activity(n) -> call_add_allowed_activity(n.0, n.1, s)
-  | Call_suspend_allowed_activity(n) -> call_suspend_allowed_activity(n.0, n.1, s)
-  | Call_change_admin(n) -> call_change_admin(n.0, n.1, s)
+  | Register_tandem_claims(n) -> (register_tandem_claims(n, s))
+  | Change_activity_log(n) -> change_activity_log(n, s)
+  | Change_admin_this(n) -> change_admin_this(n, s)
+  | Call_add_allowed_activity(n) -> call_add_allowed_activity(n, s)
+  | Call_suspend_allowed_activity(n) -> call_suspend_allowed_activity(n, s)
+  | Call_change_admin(n) -> call_change_admin(n, s)
   end

@@ -28,6 +28,9 @@ contract('fa1_2_kiss', (_accounts) => {
         initial_storage.initial_storage_fa1_2_kiss_activity_log.admin = instance.address;
         activity_instance = await fa1_2_kiss_activity_log.new(initial_storage.initial_storage_fa1_2_kiss_activity_log);
 
+        // Update instance storage with the correct address for activity log
+        await instance.change_activity_log(activity_instance.address);
+
         /**
          * Display the current contract address for debugging purposes
          */
@@ -35,6 +38,13 @@ contract('fa1_2_kiss', (_accounts) => {
         console.log('FA1.2 KISS activity log contract deployed at:', activity_instance.address);
         storage = await instance.storage();
         activity_storage = await activity_instance.storage();
+    });
+
+    describe('Initialization test', () => {
+        it('has the correct activity log address', async () => {
+            assert.equal(storage.external_contract_address, activity_instance.address, 'Should have stored correct activity log address');
+            assert.equal(instance.address, activity_storage.admin, 'FA1.2 contract should be administrator of activity log');
+        });
     });
 
     describe('serialization test', () => {
@@ -88,7 +98,7 @@ contract('fa1_2_kiss', (_accounts) => {
             const bobBefore = await storage.ledger.get(bob.pkh);
             assert(aliceBefore.balance.isEqualTo(new BigNumber(120)), "Alice's intial balance is 120");
             assert(bobBefore.balance.isEqualTo(new BigNumber(10)), "Bob's intial balance is 10");
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfter.balance.isEqualTo(new BigNumber(60)), "Alice's new balance is 60");
@@ -124,7 +134,7 @@ contract('fa1_2_kiss', (_accounts) => {
             assert(aliceBefore.balance.isEqualTo(new BigNumber(60)), "Alice's intial balance is 60");
             assert(bobBefore.balance.isEqualTo(new BigNumber(70)), "Bob's intial balance is 70");
             assert(bobBefore.debit.isEqualTo(new BigNumber(0)), "Bob's intial debit is 0");
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfter.balance.isEqualTo(new BigNumber(131)), "Alice's new balance is 131");
@@ -148,7 +158,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             var aliceAfterAfter = await storage.ledger.get(alice.pkh);
             var bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(202)), "Alice's new balance is 202");
@@ -175,7 +185,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
             bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(201)), "Alice's new balance is 201");
@@ -199,7 +209,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
             bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(199)), "Alice's new balance is 199");
@@ -223,7 +233,7 @@ contract('fa1_2_kiss', (_accounts) => {
                     signature: signature.sig,
                 }],
             };
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
             bobAfterAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfterAfter.balance.isEqualTo(new BigNumber(60)), "Alice's final balance is 60");
@@ -256,7 +266,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                instance.register_tandem_claims([tandemClaim]),
                 "INVALID_SIGNATURE"
             );
 
@@ -264,7 +274,7 @@ contract('fa1_2_kiss', (_accounts) => {
             let bobSK = new InMemorySigner(bob.sk);
             signature = await bobSK.sign(toHexString(msgToSign));
             tandemClaim.helpees[0].signature = signature.sig;
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
         });
 
         it('should fail on wrong signature with bad minute value', async () => {
@@ -291,7 +301,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                instance.register_tandem_claims([tandemClaim]),
                 "INVALID_SIGNATURE"
             );
 
@@ -303,7 +313,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [charlie.pkh]);
             var signature = await bobSk.sign(toHexString(msgToSign));
             tandemClaim.helpees[0].signature = signature.sig;
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
         });
 
         it('should fail on wrong signature with bad nonce', async () => {
@@ -330,7 +340,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                instance.register_tandem_claims([tandemClaim]),
                 "INVALID_SIGNATURE"
             );
 
@@ -342,7 +352,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [charlie.pkh]);
             var signature = await aliceSk.sign(toHexString(msgToSign));
             tandemClaim.helpees[0].signature = signature.sig;
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
         });
 
         it('should fail on wrong signature with recipient address', async () => {
@@ -369,13 +379,13 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                instance.register_tandem_claims([tandemClaim]),
                 "INVALID_SIGNATURE"
             );
 
             // Fix recipient and verify that it works
             tandemClaim.helpers[0] = charlie.pkh;
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
         });
 
         it('disallow unregistered activities', async () => {
@@ -402,7 +412,7 @@ contract('fa1_2_kiss', (_accounts) => {
             };
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                instance.register_tandem_claims([tandemClaim]),
                 "UNKNOWN_ACTIVITY"
             );
 
@@ -415,10 +425,10 @@ contract('fa1_2_kiss', (_accounts) => {
             signature = await aliceSk.sign(toHexString(msgToSign));
             tandemClaim.activities[0] = 2;
             tandemClaim.helpees[0].signature = signature.sig;
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
 
             // Disallow activity 2 and verify expected error message
-            await instance.call_suspend_allowed_activity(2, activity_instance.address);
+            await instance.call_suspend_allowed_activity(2);
 
             aliceNonce = await storage.nonces.get(alice.pkh);
             aliceNonceNumber = aliceNonce.toNumber();
@@ -431,13 +441,13 @@ contract('fa1_2_kiss', (_accounts) => {
             tandemClaim.helpees[0].signature = signature.sig;
 
             await expectThrow(
-                instance.register_tandem_claims([tandemClaim], activity_instance.address),
+                instance.register_tandem_claims([tandemClaim]),
                 "ACTIVITY_SUSPENDED"
             );
 
             // Allow activity 2 again, and verify that this registration is now allowed
-            await instance.call_add_allowed_activity(2, activity_instance.address);
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.call_add_allowed_activity(2);
+            await instance.register_tandem_claims([tandemClaim]);
         });
 
         it('should allow two helpers on one claim', async () => {
@@ -464,7 +474,7 @@ contract('fa1_2_kiss', (_accounts) => {
             const aliceBefore = await storage.ledger.get(alice.pkh);
             const bobBefore = await storage.ledger.get(bob.pkh);
             const davidBefore = await storage.ledger.get(david.pkh);
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             // const charlieAfter = await storage.ledger.get(charlie.pkh);
@@ -500,7 +510,7 @@ contract('fa1_2_kiss', (_accounts) => {
             const bobBefore = await storage.ledger.get(bob.pkh);
             const charlieBefore = await storage.ledger.get(charlie.pkh);
             const davidBefore = await storage.ledger.get(david.pkh);
-            await instance.register_tandem_claims([tandemClaim], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim]);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             const charlieAfter = await storage.ledger.get(charlie.pkh);
@@ -612,7 +622,7 @@ contract('fa1_2_kiss', (_accounts) => {
             const activity0Before = activity_storage.activity_balance.get('0');
             const activity1Before = activity_storage.activity_balance.get('1');
             const activity2Before = activity_storage.activity_balance.get('2');
-            await instance.register_tandem_claims([tandemClaim0, tandemClaim1, tandemClaim2, tandemClaim3, tandemClaim4], activity_instance.address);
+            await instance.register_tandem_claims([tandemClaim0, tandemClaim1, tandemClaim2, tandemClaim3, tandemClaim4]);
             const aliceAfter = await storage.ledger.get(alice.pkh);
             const bobAfter = await storage.ledger.get(bob.pkh);
             const charlieAfter = await storage.ledger.get(charlie.pkh);
@@ -632,12 +642,52 @@ contract('fa1_2_kiss', (_accounts) => {
             assert(activity2After.isEqualTo(activity2Before.plus(new BigNumber(2))), "Time spent on activity 2 increased by 2");
         });
 
+        // Below here, you can place tests that mess-up the storage of the deployed contracts, e.g. remove alice as admin
+        // as they are run last and shouldn't sabotage the other tests
         it('should be possible to change activity log admin', async () => {
             activity_storage = await activity_instance.storage();
             assert.equal(activity_storage.admin, instance.address);
-            await instance.call_change_admin(activity_instance.address, bob.pkh);
+            await instance.call_change_admin(bob.pkh);
             activity_storage = await activity_instance.storage();
             assert.equal(activity_storage.admin, bob.pkh);
         });
+
+        it('should be possible to change activity address', async () => {
+            const new_activity_log = 'KT1X6Mao155GRSGRHJsXyJ9D97s22x25osCu';
+            storage = await instance.storage();
+            assert.equal(storage.external_contract_address, activity_instance.address);
+            await instance.change_activity_log(new_activity_log);
+            storage = await instance.storage();
+            assert.equal(storage.external_contract_address, new_activity_log);
+        });
+
+        it('Should be possible to change admin and only admin can call admin endpoints', async () => {
+            storage = await instance.storage();
+            assert.equal(storage.admin, alice.pkh);
+            await instance.change_admin_this(bob.pkh);
+            storage = await instance.storage();
+            assert.equal(storage.admin, bob.pkh);
+
+            await expectThrow(
+                instance.call_add_allowed_activity(1),
+                "CALLER_NOT_ADMIN"
+            );
+            await expectThrow(
+                instance.call_suspend_allowed_activity(3),
+                "CALLER_NOT_ADMIN"
+            );
+            await expectThrow(
+                instance.call_change_admin(charlie.pkh),
+                "CALLER_NOT_ADMIN"
+            );
+            await expectThrow(
+                instance.change_activity_log(charlie.pkh),
+                "CALLER_NOT_ADMIN"
+            );
+            await expectThrow(
+                instance.change_admin_this(charlie.pkh),
+                "CALLER_NOT_ADMIN"
+            );
+        })
     });
 });
