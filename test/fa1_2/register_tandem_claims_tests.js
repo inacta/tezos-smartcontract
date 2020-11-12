@@ -107,6 +107,35 @@ contract('fa1_2_kiss', (_accounts) => {
             // Verify that storage in the activity recording contract has also been updated
         });
 
+        it('should be a nop to register tandem for self', async () => {
+            let aliceSk = new InMemorySigner(alice.sk);
+            let aliceNonce = await storage.nonces.get(alice.pkh) || new BigNumber(0);
+            let aliceNonceNumber = aliceNonce.toNumber();
+
+            var msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber),
+                new BigNumber(1),
+                [new BigNumber(0)],
+                [alice.pkh]);
+            var signature = await aliceSk.sign(toHexString(msgToSign));
+            var tandemClaim = {
+                helpers: [alice.pkh],
+                activities: [0],
+                minutes: 1,
+                helpees: { signed_helpee: [{
+                    address: alice.pkh,
+                    pk: alice.pk,
+                    signature: signature.sig,
+                }]},
+            };
+
+            const aliceBefore = await storage.ledger.get(alice.pkh);
+            assert(aliceBefore.balance.isEqualTo(new BigNumber(60)), "Alice starts with 60");
+            await instance.register_tandem_claims([tandemClaim]);
+            const aliceAfter = await storage.ledger.get(alice.pkh);
+            assert(aliceAfter.balance.isEqualTo(new BigNumber(60)), "balance is unaffected when registering tandem for self");
+        });
+
         it('Should allow negative balances when calling the register_tandem_claims endpoint', async () => {
             let bobSk = new InMemorySigner(bob.sk);
             let bobNonce = await storage.nonces.get(bob.pkh) || new BigNumber(0);
