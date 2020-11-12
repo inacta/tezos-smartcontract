@@ -7,8 +7,11 @@ type account is record
     debit: nat;
 end
 
+type activity is nat;
 
-// KISS-specific data structures
+(* KISS-specific data structures *)
+
+// Helper record for the registration of tandem claims
 type signed_claim is record
     signature: signature;
     pk: key;
@@ -18,21 +21,21 @@ type signed_claim is record
     recipients: set(address);
 end
 
-type activity is nat;
-
-type tandem_claim_helpee_admin is record
-    address: address;
-end
-
 type tandem_claim_helpee is record
     address: address;
     pk: key;
     signature: signature;
 end
 
+// helpees needs to be a list (as opposed to sets) since signature values are not
+// comparable and set can only handle comparable types. tandem_claim_helpee
+// contains a field of type signature.
+type helpees is
+| Signed_helpee of list(tandem_claim_helpee)
+| Admin_helpee of list(address)
+
 type tandem_claim is record
-    // helpees needs to be a list since signature are not comparable and set can only handle comparable types
-    helpees: list(tandem_claim_helpee);
+    helpees: helpees;
     helpers: set(address); // those who receive minutes
     activities: set(activity);
     minutes: nat;
@@ -42,7 +45,6 @@ type tandem_claim_michelson is michelson_pair_right_comb(tandem_claim);
 
 type tandem_param is list(tandem_claim_michelson);
 
-// Type definition for entry points
 // Change_admin_this is called so to prevent name clash with endpoint in activity log contract
 type action is
 | Transfer of (address * address * nat)
@@ -56,9 +58,6 @@ type action is
 | Call_add_allowed_activity of nat
 | Call_suspend_allowed_activity of nat
 | Call_change_admin of address
-// | Register_tandem_claims_admin of tandem_param_
-// TODO: We probably need to an admin endpoint here for the registration of tandem claims
-// without signature verification
 
 (* Endpoints for the external activity log contract *)
 type add_allowed_activity is Add_allowed_activity of nat;
@@ -76,7 +75,7 @@ type storage is record
   total_supply: nat;
 
   allowed_activities: map(nat, bool);
-  admin: address; // admin can change approved activities
+  admin: address; // admin can e.g. change approved activities
 end
 
 (* KISS-specific endpoints *)
@@ -292,6 +291,67 @@ end with list [transaction(balance_, 0tz, contr)]
 function get_total_supply (const contr : contract(nat) ; var s : storage) : list(operation) is
   list [transaction(s.total_supply, 0tz, contr)]
 
+function subtract_from_spender_helper(var storage: storage; const spender: address; const minutes: nat): storage is
+begin
+    // Fetch src account, a source account will not exist in storage
+    // if accountFrom has never received an amount, nor approved any
+    // address to spend from it
+    var src: account := record
+        balance = 0n;
+        allowances = (map end : map(address, nat));
+        debit = 0n;
+    end;
+    case storage.ledger[spender] of
+        | Some (acc) -> src := acc
+        | None -> skip
+    end;
+
+    // Check that the source can spend that much
+    if minutes > src.balance then
+    begin
+        src.debit := src.debit + abs(minutes - src.balance);
+        src.balance := 0n;
+    end
+    else
+        src.balance := abs(src.balance - minutes);
+
+    // Update the source balance
+    // This must be done before minutes are subtracted from spenders since
+    // sending to self would otherwise be a way to increase total supply!
+    storage.ledger[spender] := src;
+end with storage;
+
+(* Helper function for updating balances *)
+function transfer_to_recipient_helper(var storage: storage; const recipient: address; const minutes: nat): storage is
+begin
+    // TODO: Add whitelisting check here if WL is required. This place, both sender and recipient are available
+    var dst: account := record
+        balance = 0n;
+        allowances = (map end : map(address, nat));
+        debit = 0n;
+    end;
+    case storage.ledger[recipient] of
+        | None -> skip
+        | Some(n) -> dst := n
+    end;
+
+    // Update the recipient balance
+    // Withdraw from debit if any debit exists
+    if dst.debit > 0n then block {
+        if dst.debit > minutes then
+            dst.debit := abs(dst.debit - minutes);
+        else block {
+            dst.balance := dst.balance + abs(dst.debit - minutes);
+            dst.debit := 0n;
+        }
+    }
+    else block {
+        dst.balance := dst.balance + minutes;
+    };
+
+    storage.ledger[recipient] := dst;
+end with storage;
+
 (* Main KISS endpoint *)
 function register_tandem_claims(const claims: list(tandem_claim_michelson); var storage : storage): (list(operation) * storage) is
 begin
@@ -318,12 +378,24 @@ begin
 
         // How much should each helpee pay?
         // Note that we use Euclidean division here
-        const minutes_per_helpee : nat = tandem_claim.minutes / List.size( tandem_claim.helpees );
-        if minutes_per_helpee * List.size( tandem_claim.helpees ) =/= tandem_claim.minutes then
-            failwith("TOTAL_MINUTES_NOT_DIVISIBLE_BY_HELPEES_LENGTH");
+        // Also verify that the numbers of helpers and helpees divide the total number of minutes
+        const minutes_per_sender_and_count: (nat * nat) = case tandem_claim.helpees of
+                | Signed_helpee(helpees) -> (tandem_claim.minutes / List.length( helpees ), List.length( helpees ))
+                | Admin_helpee(helpees) -> (tandem_claim.minutes / List.length( helpees ), List.length( helpees ))
+            end;
+        const minutes_per_sender: nat = minutes_per_sender_and_count.0;
+        const helpees_number: nat = minutes_per_sender_and_count.1;
+        const minutes_per_recipient: nat = tandem_claim.minutes / Set.size( tandem_claim.helpers );
+        if minutes_per_recipient * Set.size( tandem_claim.helpers ) =/= tandem_claim.minutes then
+            failwith("INCONSISTENT_MINUTES_PER_RECIPIENT");
+        else
+            skip;
+        if minutes_per_sender * helpees_number =/= tandem_claim.minutes then
+            failwith("INCONSISTENT_MINUTES_PER_SENDER");
         else
             skip;
 
+        // Only called for user-signed tandem claims
         function helpees_to_signed_claims(var signed_claims: list(signed_claim); const tandem_claim_helpee: tandem_claim_helpee): list(signed_claim) is
         begin
             const new_element: signed_claim = record[
@@ -331,7 +403,7 @@ begin
                 pk = tandem_claim_helpee.pk;
                 sender = tandem_claim_helpee.address;
                 recipients = tandem_claim.helpers;
-                minutes = minutes_per_helpee;
+                minutes = minutes_per_sender;
                 activities = tandem_claim.activities;
             ];
             signed_claims := new_element # signed_claims;
@@ -354,78 +426,31 @@ begin
 
             storage.nonces[signed_claim.sender] := nonce + 1n;
 
-            const minutes_per_recipient: nat = signed_claim.minutes / Set.size( signed_claim.recipients );
-            if minutes_per_recipient * Set.size( signed_claim.recipients ) =/= signed_claim.minutes then
-                failwith("INCONSISTENT_MINUTES_PER_RECIPIENT");
-            else
-                skip;
+            function transfer_to_recipient(var storage: storage; const recipient: address): storage is transfer_to_recipient_helper(storage, recipient, minutes_per_recipient);
 
-            function transfer_to_recipient(var storage: storage; const recipient: address): storage is
-            begin
-                // TODO: Add whitelisting check here if WL is required. This place, both sender and recipient are available
-                var dst: account := record
-                    balance = 0n;
-                    allowances = (map end : map(address, nat));
-                    debit = 0n;
-                end;
-                case storage.ledger[recipient] of
-                    | None -> skip
-                    | Some(n) -> dst := n
-                end;
-
-                // Update the recipient balance
-                // Withdraw from debit if any debit exists
-                if dst.debit > 0n then block {
-                    if dst.debit > minutes_per_recipient then
-                        dst.debit := abs(dst.debit - minutes_per_recipient);
-                    else block {
-                            dst.balance := dst.balance + abs(dst.debit - minutes_per_recipient);
-                            dst.debit := 0n;
-                    }
-                }
-                else block {
-                    dst.balance := dst.balance + minutes_per_recipient;
-                };
-
-                storage.ledger[recipient] := dst;
-            end with storage;
-
-            // Fetch src account, a source account will not exist in storage
-            // if accountFrom has never received an amount, nor approved any
-            // address to spend from it
-            var src: account := record
-                balance = 0n;
-                allowances = (map end : map(address, nat));
-                debit = 0n;
-            end;
-            case storage.ledger[signed_claim.sender] of
-                | Some (acc) -> src := acc
-                | None -> skip
-            end;
-
-            // Check that the source can spend that much
-            if signed_claim.minutes > src.balance then
-            begin
-                src.debit := src.debit + abs(signed_claim.minutes - src.balance);
-                src.balance := 0n;
-            end
-            else
-                src.balance := abs(src.balance - signed_claim.minutes);
-
-            // Update the source balance
-            // This must be done before minutes are subtracted from spenders since
-            // sending to self would otherwise be a way to increase total supply!
-            storage.ledger[signed_claim.sender] := src;
+            function subtract_from_spender(var storage: storage; const spender: address): storage is subtract_from_spender_helper(storage, spender, signed_claim.minutes);
+            storage := subtract_from_spender(storage, signed_claim.sender);
 
             // Transfer owed balance to each recipient
             storage := Set.fold(transfer_to_recipient, signed_claim.recipients, storage)
         end with storage;
 
-        var signed_claims: list(signed_claim) := List.fold(helpees_to_signed_claims, tandem_claim.helpees, (nil: list(signed_claim)));
-
-        // Make all balance updates
-        storage := List.fold(apply_signed_claim, signed_claims, storage);
-
+        case tandem_claim.helpees of
+            | Signed_helpee(tandem_claim_helpees) -> block {
+                var signed_claims: list(signed_claim) := List.fold(helpees_to_signed_claims, tandem_claim_helpees, (nil: list(signed_claim)));
+                storage := List.fold(apply_signed_claim, signed_claims, storage);
+            }
+            | Admin_helpee(helpee_addresses) -> block {
+                if Tezos.sender =/= storage.admin then
+                    failwith("CALLER_NOT_ADMIN")
+                else
+                    skip;
+                function transfer_from_helpee(var storage: storage; const spender: address): storage is subtract_from_spender_helper(storage, spender, minutes_per_sender);
+                function transfer_to_helper(var storage: storage; const recipient: address): storage is transfer_to_recipient_helper(storage, recipient, minutes_per_recipient);
+                storage := List.fold(transfer_from_helpee, helpee_addresses, storage);
+                storage := Set.fold(transfer_to_helper, tandem_claim.helpers, storage);
+            }
+        end;
     end with storage;
 
     // Iterate over all claims

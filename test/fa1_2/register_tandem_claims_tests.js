@@ -87,11 +87,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh],
                 activities: [0],
                 minutes: 60,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             const aliceBefore = await storage.ledger.get(alice.pkh);
@@ -122,11 +122,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [alice.pkh],
                 activities: [0],
                 minutes: 71,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: bob.pkh,
                     pk: bob.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             const aliceBefore = await storage.ledger.get(alice.pkh);
@@ -152,11 +152,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [alice.pkh],
                 activities: [0],
                 minutes: 71,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: bob.pkh,
                     pk: bob.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
             await instance.register_tandem_claims([tandemClaim]);
             var aliceAfterAfter = await storage.ledger.get(alice.pkh);
@@ -179,11 +179,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh],
                 activities: [0],
                 minutes: 1,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
             await instance.register_tandem_claims([tandemClaim]);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
@@ -203,11 +203,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh],
                 activities: [0],
                 minutes: 2,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
             await instance.register_tandem_claims([tandemClaim]);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
@@ -227,11 +227,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh],
                 activities: [0],
                 minutes: 139,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
             await instance.register_tandem_claims([tandemClaim]);
             aliceAfterAfter = await storage.ledger.get(alice.pkh);
@@ -258,11 +258,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [charlie.pkh],
                 activities: [0],
                 minutes: 1,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: bob.pkh,
                     pk: bob.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             await expectThrow(
@@ -273,7 +273,7 @@ contract('fa1_2_kiss', (_accounts) => {
             // Change signer and verify that it works
             let bobSK = new InMemorySigner(bob.sk);
             signature = await bobSK.sign(toHexString(msgToSign));
-            tandemClaim.helpees[0].signature = signature.sig;
+            tandemClaim.helpees.signed_helpee[0].signature = signature.sig;
             await instance.register_tandem_claims([tandemClaim]);
         });
 
@@ -293,11 +293,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [charlie.pkh],
                 activities: [0],
                 minutes: 2,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: bob.pkh,
                     pk: bob.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             await expectThrow(
@@ -312,7 +312,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [new BigNumber(0)],
                 [charlie.pkh]);
             var signature = await bobSk.sign(toHexString(msgToSign));
-            tandemClaim.helpees[0].signature = signature.sig;
+            tandemClaim.helpees.signed_helpee[0].signature = signature.sig;
             await instance.register_tandem_claims([tandemClaim]);
         });
 
@@ -332,11 +332,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [charlie.pkh],
                 activities: [0],
                 minutes: 1,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             await expectThrow(
@@ -351,7 +351,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [new BigNumber(0)],
                 [charlie.pkh]);
             var signature = await aliceSk.sign(toHexString(msgToSign));
-            tandemClaim.helpees[0].signature = signature.sig;
+            tandemClaim.helpees.signed_helpee[0].signature = signature.sig;
             await instance.register_tandem_claims([tandemClaim]);
         });
 
@@ -371,11 +371,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh],
                 activities: [0],
                 minutes: 1,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             await expectThrow(
@@ -404,11 +404,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh],
                 activities: [3],
                 minutes: 1,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             await expectThrow(
@@ -424,7 +424,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [bob.pkh]);
             signature = await aliceSk.sign(toHexString(msgToSign));
             tandemClaim.activities[0] = 2;
-            tandemClaim.helpees[0].signature = signature.sig;
+            tandemClaim.helpees.signed_helpee[0].signature = signature.sig;
             await instance.register_tandem_claims([tandemClaim]);
 
             // Disallow activity 2 and verify expected error message
@@ -438,7 +438,7 @@ contract('fa1_2_kiss', (_accounts) => {
                 [new BigNumber(2)],
                 [bob.pkh]);
             signature = await aliceSk.sign(toHexString(msgToSign));
-            tandemClaim.helpees[0].signature = signature.sig;
+            tandemClaim.helpees.signed_helpee[0].signature = signature.sig;
 
             await expectThrow(
                 instance.register_tandem_claims([tandemClaim]),
@@ -464,11 +464,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh, david.pkh],
                 activities: [0],
                 minutes: 2,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             const aliceBefore = await storage.ledger.get(alice.pkh);
@@ -499,11 +499,11 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh, charlie.pkh, david.pkh],
                 activities: [0],
                 minutes: 3,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature.sig,
-                }],
+                }]},
             };
 
             const aliceBefore = await storage.ledger.get(alice.pkh);
@@ -565,51 +565,51 @@ contract('fa1_2_kiss', (_accounts) => {
                 helpers: [bob.pkh],
                 activities: [0],
                 minutes: 1,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature0.sig,
-                }],
+                }]},
             };
             var tandemClaim1 = {
                 helpers: [charlie.pkh],
                 activities: [0],
                 minutes: 2,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature1.sig,
-                }],
+                }]},
             };
             var tandemClaim2 = {
                 helpers: [david.pkh],
                 activities: [1],
                 minutes: 3,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature2.sig,
-                }],
+                }]},
             };
             var tandemClaim3 = {
                 helpers: [bob.pkh],
                 activities: [1, 2],
                 minutes: 4,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: alice.pkh,
                     pk: alice.pk,
                     signature: signature3.sig,
-                }],
+                }]},
             };
             var tandemClaim4 = {
                 helpers: [alice.pkh],
                 activities: [0],
                 minutes: 1,
-                helpees: [{
+                helpees: { signed_helpee: [{
                     address: bob.pkh,
                     pk: bob.pk,
                     signature: signature4.sig,
-                }],
+                }]},
             };
 
             // Charlie does not have an initial entry in storage, so we cannot
