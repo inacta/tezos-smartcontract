@@ -56,9 +56,13 @@ contract('fa1_2_kiss', (_accounts) => {
             const bobAfter = await storage.ledger.get(bob.pkh);
             assert(aliceAfter.balance.isEqualTo(new BigNumber(60)), "Alice's new balance is 60");
             assert(bobAfter.balance.isEqualTo(new BigNumber(70)), "Bob's new balance is 70");
+
+            // Verify that activity is logged correctly
+            activity_storage = await activity_instance.storage();
+            assert(activity_storage.activity_balance.get('0').isEqualTo(new BigNumber(60)));
         });
 
-        it('should treat same helper and helpee as a nop', async () => {
+        it('should treat same helper and helpee as a nop for balances', async () => {
             var adminTandemClaim = {
                 helpers: [alice.pkh],
                 helpees: { admin_helpee: [alice.pkh]},
@@ -77,7 +81,7 @@ contract('fa1_2_kiss', (_accounts) => {
             var adminTandemClaim = {
                 helpers: [bob.pkh, charlie.pkh, david.pkh],
                 helpees: { admin_helpee: [alice.pkh]},
-                activities: [0],
+                activities: [1],
                 minutes: 9,
             };
 
@@ -93,6 +97,10 @@ contract('fa1_2_kiss', (_accounts) => {
             assert(bobAfter.balance.isEqualTo(bobBefore.balance.plus(new BigNumber(3))), "Bob got 3 minutes for help");
             assert(charlieAfter.balance.isEqualTo(new BigNumber(3)), "Charlie got 3 minutes for help"); // Charlie does not have an entry in storage prior to call to endpoint
             assert(davidAfter.balance.isEqualTo(davidBefore.balance.plus(new BigNumber(3))), "David got 3 minutes for help");
+
+            // Verify that activity is logged correctly
+            activity_storage = await activity_instance.storage();
+            assert(activity_storage.activity_balance.get('1').isEqualTo(new BigNumber(9)));
         });
 
         it('should be able to handle multiple helpers', async () => {
@@ -186,6 +194,27 @@ contract('fa1_2_kiss', (_accounts) => {
             await expectThrow(instance.register_tandem_claims([adminTandemClaim]), "INCONSISTENT_MINUTES_PER_SENDER");
             adminTandemClaim.minutes = 2;
             await instance.register_tandem_claims([adminTandemClaim]);
+        });
+
+        it('should fail on unregistered activities', async () => {
+            var adminTandemClaim = {
+                helpers: [bob.pkh],
+                helpees: { admin_helpee: [alice.pkh] },
+                activities: [3],
+                minutes: 1,
+            };
+            await expectThrow(instance.register_tandem_claims([adminTandemClaim]), "UNKNOWN_ACTIVITY");
+        });
+
+        it('should fail on suspended activities', async () => {
+            await instance.call_suspend_allowed_activity(2);
+            var adminTandemClaim = {
+                helpers: [bob.pkh],
+                helpees: { admin_helpee: [alice.pkh] },
+                activities: [2],
+                minutes: 1,
+            };
+            await expectThrow(instance.register_tandem_claims([adminTandemClaim]), "ACTIVITY_SUSPENDED");
         });
 
         it('should only allow admin to call the admin endpoint', async () => {
