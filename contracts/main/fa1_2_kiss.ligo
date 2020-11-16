@@ -370,8 +370,14 @@ begin
     begin
         // Create a left-balanced tree to pack the relevant values: (((nonce, minutes), activities ), recipients)
         const message: bytes = Bytes.pack((((nonce, signed_claim.minutes), signed_claim.activities), signed_claim.recipients));
-        const valid: bool = Crypto.check(signed_claim.pk, signed_claim.signature, message);
-    end with valid;
+        const valid_signature: bool = Crypto.check(signed_claim.pk, signed_claim.signature, message);
+
+        // Validate that the public key matches the address
+        const pkh: key_hash = Crypto.hash_key(signed_claim.pk);
+        const c: contract(unit) = Tezos.implicit_account(pkh);
+        const valid_public_key: bool = Tezos.address(c) = signed_claim.sender;
+
+    end with valid_signature and valid_public_key;
 
     function register_tandem_claim_iterator(var storage : storage ; const tandem_claim: tandem_claim): storage is
     begin

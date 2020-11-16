@@ -417,6 +417,43 @@ contract('fa1_2_kiss', (_accounts) => {
             await instance.register_tandem_claims([tandemClaim]);
         });
 
+        it('should fail on wrong signature with address/public key mismatch', async () => {
+            let aliceSk = new InMemorySigner(alice.sk);
+            let aliceNonce = await storage.nonces.get(alice.pkh) || new BigNumber(0);
+            let aliceNonceNumber = aliceNonce.toNumber();
+
+            // Express amount in mutez
+            var msgToSign = packFourTupleAsLeftBalancedPairs(
+                new BigNumber(aliceNonceNumber),
+                new BigNumber(1),
+                [new BigNumber(0)],
+                [bob.pkh]);
+            var signature = await aliceSk.sign(toHexString(msgToSign));
+
+            // In this tandem claim, the signature is valid for the provided message
+            // and public key, but the helpee address does not match the public key
+            // This claim must be rejected
+            var tandemClaim = {
+                helpers: [bob.pkh],
+                activities: [0],
+                minutes: 1,
+                helpees: { signed_helpee: [{
+                    address: bob.pkh,
+                    pk: alice.pk,
+                    signature: signature.sig,
+                }]},
+            };
+
+            await expectThrow(
+                instance.register_tandem_claims([tandemClaim]),
+                "INVALID_SIGNATURE"
+            );
+
+            // Fix helpee address and verify that it works
+            tandemClaim.helpees.signed_helpee[0].address = alice.pkh;
+            await instance.register_tandem_claims([tandemClaim]);
+        });
+
         it('disallow unregistered activities', async () => {
             let aliceSk = new InMemorySigner(alice.sk);
             let aliceNonce = await storage.nonces.get(alice.pkh) || new BigNumber(0);
