@@ -107,7 +107,7 @@ begin
     // only allow suspension of already registered activities
     case storage.allowed_activities[activity] of
         | Some(allowed) -> storage.allowed_activities[activity] := False
-        | None -> failwith("ACTIVITY_DOES_NO_EXIST")
+        | None -> failwith("ACTIVITY_DOES_NOT_EXIST")
     end;
 
     // Prepare call to external contract

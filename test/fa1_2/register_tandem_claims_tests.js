@@ -717,6 +717,6 @@ contract('fa1_2_kiss', (_accounts) => {
                 instance.change_admin_this(charlie.pkh),
                 "CALLER_NOT_ADMIN"
             );
-        })
+        });
     });
 });
