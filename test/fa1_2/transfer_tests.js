@@ -2,6 +2,7 @@ const BigNumber = require('bignumber.js');
 const fa1_2_basic = artifacts.require("fa1_2_basic");
 const fa1_2_with_whitelisting = artifacts.require("fa1_2_with_whitelisting");
 const fa1_2_burn_mint = artifacts.require("fa1_2_burn_mint");
+const fa1_2_kiss = artifacts.require("fa1_2_kiss");
 const initial_storage = require('../../helpers/storage');
 
 const { alice, bob, charlie, david } = require('../../scripts/sandbox/accounts');
@@ -24,6 +25,8 @@ contract('fa1_2_basic and fa1_2_with_whitelisting', (_accounts) => {
         fa1_2_instances[1] = await fa1_2_with_whitelisting.new(initial_storage.initial_storage_fa1_2_with_whitelisting_all_whitelisted);
         contract_names[2] = "fa1_2_burn_mint";
         fa1_2_instances[2] = await fa1_2_burn_mint.new(initial_storage.initial_storage_fa1_2_burn_mint_alice_minter);
+        contract_names[3] = "fa1_2_kiss";
+        fa1_2_instances[3] = await fa1_2_kiss.new(initial_storage.initial_storage_fa1_2_kiss);
 
         /**
          * Display the current contract address for debugging purposes
@@ -31,9 +34,11 @@ contract('fa1_2_basic and fa1_2_with_whitelisting', (_accounts) => {
         console.log('FA1.2 contract deployed at:', fa1_2_instances[0].address);
         console.log('FA1.2-WL contract deployed at:', fa1_2_instances[1].address);
         console.log('FA1.2 burn/mint:', fa1_2_instances[2].address);
+        console.log('FA1.2 kiss:', fa1_2_instances[3].address);
         storages[0] = await fa1_2_instances[0].storage();
         storages[1] = await fa1_2_instances[1].storage();
         storages[2] = await fa1_2_instances[2].storage();
+        storages[3] = await fa1_2_instances[3].storage();
     });
 
 
@@ -45,13 +50,14 @@ contract('fa1_2_basic and fa1_2_with_whitelisting', (_accounts) => {
                     const storage = storages[i];
                     const aliceBefore = await storage.ledger.get(alice.pkh);
                     const bobBefore = await storage.ledger.get(bob.pkh);
-                    assert.equal(aliceBefore.balance, 10, "Alice's intial balance is 10, " + name);
-                    assert.equal(bobBefore.balance, 10, "Bob's intial balance is 10," + name);
+                    const initial_balance = name === 'fa1_2_kiss' ? 120 : 10;
+                    assert(aliceBefore.balance.isEqualTo(new BigNumber(initial_balance)), `Alice's intial balance is ${initial_balance}, ` + name);
+                    assert(bobBefore.balance.isEqualTo(new BigNumber(10)), "Bob's intial balance is 10," + name);
                     await instance.transfer(alice.pkh, bob.pkh, 1);
                     var aliceAfter = await storage.ledger.get(alice.pkh);
                     var bobAfter = await storage.ledger.get(bob.pkh);
-                    assert.equal(aliceAfter.balance, 9, "Alice lost one, "  + name);
-                    assert.equal(bobAfter.balance, 11, "Bob gained one," + name);
+                    assert(aliceAfter.balance.isEqualTo((new BigNumber(initial_balance)).minus(1)), "Alice lost one, "  + name);
+                    assert(bobAfter.balance.isEqualTo(new BigNumber(11)), "Bob gained one," + name);
                 }
             });
 
@@ -85,7 +91,7 @@ contract('fa1_2_basic and fa1_2_with_whitelisting', (_accounts) => {
                     const aliceBefore = await storage.ledger.get(alice.pkh);
                     const bobBefore = await storage.ledger.get(bob.pkh);
                     await expectThrow(
-                        instance.transfer(alice.pkh, bob.pkh, 11),
+                        instance.transfer(alice.pkh, bob.pkh, aliceBefore.balance.toNumber() + 1),
                         constants.contractErrors.insufficientBalance
                     );
                     var aliceAfter = await storage.ledger.get(alice.pkh);
