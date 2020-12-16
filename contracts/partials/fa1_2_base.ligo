@@ -59,9 +59,9 @@ function transfer (const accountFrom : address ; const destination : address ; c
     if accountFrom =/= sender then block {
         const allowanceAmount: nat = case src.allowances[Tezos.sender] of
           Some (allowance) -> allowance
-          | None -> (failwith("NoAllowance"): nat)
+          | None -> (failwith("NotEnoughAllowance"): nat)
         end;
-        if allowanceAmount - value < 0 then failwith ("Allowance amount cannot be negative");
+        if allowanceAmount - value < 0 then failwith ("NotEnoughAllowance");
         else src.allowances[Tezos.sender] := abs(allowanceAmount - value);
     } else skip;
 
