@@ -47,11 +47,11 @@ type tandem_param is list(tandem_claim_michelson);
 
 // Change_admin_this is called so to prevent name clash with endpoint in activity log contract
 type action is
-| Transfer of (address * address * nat)
-| Approve of (address * nat)
-| Get_allowance of (address * address * contract(nat))
-| Get_balance of (address * contract(nat))
-| Get_total_supply of (unit * contract(nat))
+| Transfer of michelson_pair(address, "from", michelson_pair(address, "to", nat, "value"), "")
+| Approve of michelson_pair(address, "spender", nat, "value")
+| GetBalance of michelson_pair(address, "owner", contract(nat), "")
+| GetAllowance of michelson_pair(michelson_pair(address, "owner", address, "spender"), "", contract(nat), "")
+| GetTotalSupply of (unit * contract(nat))
 | Register_tandem_claims of tandem_param
 | Change_activity_log of address
 | Change_admin_this of address
@@ -541,11 +541,11 @@ function main (const p : action ; const s : storage) : (list(operation) * storag
    if amount =/= 0tz then failwith ("This contract does not accept tezi deposits");
    else skip;
   } with case p of
-  | Transfer(n) -> ((nil : list(operation)), transfer(n.0, n.1, n.2, s))
+  | Transfer(n) -> ((nil : list(operation)), transfer(n.0, n.1.0, n.1.1, s))
   | Approve(n) -> ((nil : list(operation)), approve(n.0, n.1, s))
-  | Get_allowance(n) -> (get_allowance(n.0, n.1, n.2, s), s)
-  | Get_balance(n) -> (get_balance(n.0, n.1, s), s)
-  | Get_total_supply(n) -> (get_total_supply(n.1, s), s)
+  | GetBalance(n) -> (get_balance(n.0, n.1, s), s)
+  | GetAllowance(n) -> (get_allowance(n.0.0, n.0.1, n.1, s), s)
+  | GetTotalSupply(n) -> (get_total_supply(n.1, s), s)
   | Register_tandem_claims(n) -> (register_tandem_claims(n, s))
   | Change_activity_log(n) -> change_activity_log(n, s)
   | Change_admin_this(n) -> change_admin_this(n, s)

@@ -12,9 +12,9 @@ type action is
 | Store_total_supply of nat
 
 // External actions
-type get_allowance_action is Get_allowance of (address * address * contract(nat));
-type get_balance_action is Get_balance of (address * contract(nat));
-type get_total_supply_action is Get_total_supply of (unit * contract(nat));
+type get_allowance_action is GetAllowance of michelson_pair(michelson_pair(address, "owner", address, "spender"), "", contract(nat), "");
+type get_balance_action is GetBalance of michelson_pair(address, "owner", contract(nat), "");
+type get_total_supply_action is GetTotalSupply of (unit * contract(nat));
 
 type storage is record
     allowance_response : nat;
@@ -40,40 +40,40 @@ begin
     storage.total_supply_response := total_supply;
 end with ((nil: list(operation)), storage)
 
-function call_get_allowance(const owner: address; const operator: address; const contract_address: address; const storage: storage) : (list(operation) * storage) is
+function call_get_allowance(const owner: address; const spender: address; const contract_address: address; const storage: storage) : (list(operation) * storage) is
 begin
     const other_contract: contract(get_allowance_action) =
-    case (Tezos.get_entrypoint_opt("%get_allowance", contract_address): option(contract(get_allowance_action))) of
+    case (Tezos.get_entrypoint_opt("%getAllowance", contract_address): option(contract(get_allowance_action))) of
       | Some (c) -> c
       | None -> (failwith("not a correct contract") : contract(get_allowance_action))
     end;
 
     // The endpoint get_allowance takes a triplet of address * address * contract(nat)
     const self_contract : contract(nat) = Tezos.self("%store_allowance");
-    const argument: (address * address * contract(nat)) = (owner, operator, self_contract);
+    const argument: michelson_pair(michelson_pair(address, "owner", address, "spender"), "", contract(nat), "") = ((owner, spender), self_contract);
     const result: (list(operation) * storage) =
-    ((list [Tezos.transaction(Get_allowance(argument), 0mutez, other_contract)]: list(operation)), storage);
+    ((list [Tezos.transaction(GetAllowance(argument), 0mutez, other_contract)]: list(operation)), storage);
 end with result
 
 function call_get_balance(const owner: address; const contract_address: address; const storage: storage) : (list(operation) * storage) is
 begin
     const other_contract: contract(get_balance_action) =
-    case (Tezos.get_entrypoint_opt("%get_balance", contract_address): option(contract(get_balance_action))) of
+    case (Tezos.get_entrypoint_opt("%getBalance", contract_address): option(contract(get_balance_action))) of
       | Some (c) -> c
       | None -> (failwith("not a correct contract") : contract(get_balance_action))
     end;
 
     // The endpoint get_balance takes a tuple of address * contract(nat)
     const self_contract : contract(nat) = Tezos.self("%store_balance");
-    const argument: (address * contract(nat)) = (owner, self_contract);
+    const argument: michelson_pair(address, "owner", contract(nat), "") = (owner, self_contract);
     const result: (list(operation) * storage) =
-    ((list [Tezos.transaction(Get_balance(argument), 0mutez, other_contract)]: list(operation)), storage);
+    ((list [Tezos.transaction(GetBalance(argument), 0mutez, other_contract)]: list(operation)), storage);
 end with result
 
 function call_get_total_supply(const contract_address: address; const storage: storage) : (list(operation) * storage) is
 begin
     const other_contract: contract(get_total_supply_action) =
-    case (Tezos.get_entrypoint_opt("%get_total_supply", contract_address): option(contract(get_total_supply_action))) of
+    case (Tezos.get_entrypoint_opt("%getTotalSupply", contract_address): option(contract(get_total_supply_action))) of
       | Some (c) -> c
       | None -> (failwith("not a correct contract") : contract(get_total_supply_action))
     end;
@@ -82,7 +82,7 @@ begin
     const self_contract : contract(nat) = Tezos.self("%store_total_supply");
     const argument: (unit * contract(nat)) = (Unit, self_contract);
     const result: (list(operation) * storage) =
-    ((list [Tezos.transaction(Get_total_supply(argument), 0mutez, other_contract)]: list(operation)), storage);
+    ((list [Tezos.transaction(GetTotalSupply(argument), 0mutez, other_contract)]: list(operation)), storage);
 end with result
 
 function main (const action: action; const s: storage): (list(operation) * storage) is
